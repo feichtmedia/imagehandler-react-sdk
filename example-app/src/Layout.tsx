@@ -1,4 +1,5 @@
 import React from "react";
+import { ImageHandlerContext } from "@feichtmedia/imagehandler-react-component";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,14 +11,18 @@ const Layout: React.FunctionComponent<LayoutProps> = ({
   pageTitle,
 }) => {
   return (
-    <>
+    <ImageHandlerContext
+      config={{
+        endpointDomain: "images.feicht.media",
+      }}
+    >
       <main>
         <BoxedContainer>
           {pageTitle && <h1 style={{ marginBottom: 20 }}>{pageTitle}</h1>}
           {children}
         </BoxedContainer>
       </main>
-    </>
+    </ImageHandlerContext>
   );
 };
 export default Layout;
