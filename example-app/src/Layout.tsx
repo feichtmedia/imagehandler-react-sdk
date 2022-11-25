@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { ImageHandlerContext } from "@feichtmedia/imagehandler-react-component";
 
 interface LayoutProps {
@@ -10,6 +10,11 @@ const Layout: React.FunctionComponent<LayoutProps> = ({
   children,
   pageTitle,
 }) => {
+  // useEffect(() => {
+  //   // Call Lazy Loading here ...
+  //   console.log("mounted");
+  // }, []);
+
   return (
     <ImageHandlerContext
       config={{
