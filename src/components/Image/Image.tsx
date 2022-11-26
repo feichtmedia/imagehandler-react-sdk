@@ -4,6 +4,7 @@ import { ConfigurationContextType, ImageFilterType } from "../../types";
 import { mapFilterObjectToUrl } from "../../utils/filter-mapper";
 import { checkFiletype, prepareSrc } from "../../utils/general";
 import { generateImgSrc } from "../../utils/generate-img-src";
+import { generateSrcSet } from "../../utils/generate-src-set";
 
 interface ImageComponentProps
   extends React.DetailedHTMLProps<
@@ -14,8 +15,8 @@ interface ImageComponentProps
   width?: number;
   height?: number;
   hasSrcSet?: boolean;
+  srcSetSizes?: number[];
   objectFit?: "cover" | "contain";
-  placeholder?: "blur";
   filter?: ImageFilterType;
 }
 
@@ -25,7 +26,7 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
   height = 0,
   objectFit = "cover",
   hasSrcSet = false,
-  placeholder,
+  srcSetSizes,
   filter,
   ...props
 }) => {
@@ -49,7 +50,7 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
       undefined,
       undefined,
       "cover",
-      "",
+      undefined,
       preparedSrc,
       config
     );
@@ -80,10 +81,19 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
   );
 
   // Map filters to URL string
-  const filterUrl: string = mapFilterObjectToUrl(filter);
+  const filterUrl: string = mapFilterObjectToUrl(filter) || "";
 
   // Get src-set
-  // ...
+  const srcSet: string | undefined = hasSrcSet
+    ? generateSrcSet(
+        srcSetSizes || config.srcSetSizes,
+        width,
+        objectFit,
+        filterUrl,
+        preparedSrc,
+        config
+      )
+    : undefined;
 
   // Get default fallback image
   const defaultImage: string = generateImgSrc(
@@ -101,9 +111,9 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
       <img
         {...props}
         src={blurImage}
-        srcSet={undefined}
+        srcSet={undefined} // Will be replaced by JS
         data-src={defaultImage}
-        data-srcSet={undefined}
+        data-srcset={srcSet}
         style={styleObject}
       />
     );
@@ -113,7 +123,7 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
       <img
         {...props}
         src={defaultImage}
-        srcSet={undefined}
+        srcSet={srcSet}
         loading="lazy"
         style={styleObject}
       />

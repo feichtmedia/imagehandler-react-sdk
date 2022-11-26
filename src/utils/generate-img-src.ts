@@ -14,7 +14,7 @@ export function generateImgSrc(
   width: number | string = 0,
   height: number | string = 0,
   objectFit: "cover" | "contain" = "cover",
-  filterUrl: string,
+  filterUrl: string | undefined = "",
   src: string,
   config: ConfigurationContextType
 ): string {

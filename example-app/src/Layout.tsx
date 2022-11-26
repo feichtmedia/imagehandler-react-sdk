@@ -1,5 +1,9 @@
 import React, { useEffect } from "react";
-import { ImageHandlerContext } from "@feichtmedia/imagehandler-react-component";
+import {
+  addLazyLoading,
+  ImageHandlerContext,
+  removeLazyLoading,
+} from "@feichtmedia/imagehandler-react-sdk";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -10,15 +14,18 @@ const Layout: React.FunctionComponent<LayoutProps> = ({
   children,
   pageTitle,
 }) => {
-  // useEffect(() => {
-  //   // Call Lazy Loading here ...
-  //   console.log("mounted");
-  // }, []);
+  // After component mounted, intersect all images
+  useEffect(() => {
+    addLazyLoading();
+
+    return () => removeLazyLoading();
+  }, []);
 
   return (
     <ImageHandlerContext
       config={{
         endpointDomain: "images.feicht.media",
+        // progressiveImageLoading: false,
       }}
     >
       <main>

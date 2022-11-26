@@ -1,6 +1,6 @@
 import React from "react";
 import Layout, { SectionContainer } from "./Layout";
-import { Image } from "@feichtmedia/imagehandler-react-component";
+import { ImageHandler } from "@feichtmedia/imagehandler-react-sdk";
 
 interface AppProps {}
 
@@ -12,39 +12,29 @@ const App: React.FunctionComponent<AppProps> = () => {
          *
          */}
 
-        <Image
+        <ImageHandler
           title="FeichtMedia Logo"
           src="/99999/20221120-171024-wordmarkblueresp.svg"
         />
 
         <p>Hello World</p>
 
-        <Image
-          alt="Demo Image"
-          title="Ein wunderschönes Bild"
+        <ImageHandler
+          alt="Apple Bild"
+          title="Apple Bild"
           src="/99999/99999-12-20200929_apple-website-bild.jpg"
           width={960}
+          hasSrcSet
         />
 
-        <div
-          style={{
-            width: "100%",
-            height: "300vh",
-            background: "gray",
-            margin: "30 auto",
-            padding: 20,
-            textAlign: "center",
-            color: "white",
-          }}
-        >
-          Spacer
-        </div>
+        <Spacer height="300vh" />
 
-        <Image
-          alt="Demo Image"
-          title="Ein wunderschönes Bild"
+        <ImageHandler
+          alt="Sport Bild"
+          title="Sport Bild"
           src="/99999/20220531-105114-demo-image-metadaten-3.jpg"
           width={960}
+          hasSrcSet
           filter={
             {
               // backgroundColor: "#abcdef",
@@ -63,6 +53,14 @@ const App: React.FunctionComponent<AppProps> = () => {
           }
         />
 
+        <ImageHandler
+          width={1280}
+          src="/99999/99999-8-20200927_overview-awards-poster.jpg"
+          hasSrcSet
+        />
+
+        <Spacer height="100vh" />
+
         {/*
          *
          */}
@@ -72,3 +70,22 @@ const App: React.FunctionComponent<AppProps> = () => {
 };
 
 export default App;
+
+// --------------- Sub-Component for Spacer ---------------
+function Spacer({ height = "100vh" }) {
+  return (
+    <div
+      style={{
+        width: "100%",
+        height: height,
+        background: "gray",
+        margin: "30 auto",
+        padding: 20,
+        textAlign: "center",
+        color: "white",
+      }}
+    >
+      Spacer
+    </div>
+  );
+}

@@ -13,7 +13,7 @@ const ImageHandlerContext: React.FunctionComponent<
   const contextValues: ConfigurationContextType = {
     // Default Values
     useHttps: true,
-    srcSetSizes: [480, 768, 992, 1200, 1920, 2048, 3840],
+    srcSetSizes: [480, 768, 992, 1280, 1920, 2048, 3840],
     optimizeSvg: false,
     progressiveImageLoading: true,
     defaultStyles: {
