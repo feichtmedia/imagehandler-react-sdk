@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.3.0] – 2022-11-26
+
+- New installation on dev server.
+
 ## [0.2.0] – 2022-11-26
 
 - Added global context with configuration options and custom type for configuration context options.
