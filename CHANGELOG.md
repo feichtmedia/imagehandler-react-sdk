@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0] – 2022-11-26
+
+First major release.
+
 ## [0.5.0] – 2022-11-26
 
 - Fixed issue with `defaultStyles` in config object which were overridden by the user's `defaultStyles` object.
