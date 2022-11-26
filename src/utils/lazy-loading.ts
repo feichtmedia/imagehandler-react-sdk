@@ -25,16 +25,7 @@ const imgOptions: IntersectionObserverInit = {
 };
 
 // Image observer if image is on viewport
-const imgObserver = new IntersectionObserver((entries, imgObserver) => {
-  entries.forEach((entry) => {
-    if (!entry.isIntersecting) {
-      return;
-    } else {
-      setSrc(entry.target); // Set `src` and `srcset`
-      imgObserver.unobserve(entry.target); // Unobserve target
-    }
-  });
-}, imgOptions);
+let imgObserver: IntersectionObserver | null = null;
 
 /**
  * Attach the Intersection Observer to all image nodes on the page
@@ -43,9 +34,21 @@ function attachImageObserver(): void {
   // Select all images
   const images = document.querySelectorAll(imageTargets);
 
+  // Create image observer
+  imgObserver = new IntersectionObserver((entries, imgObserver) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) {
+        return;
+      } else {
+        setSrc(entry.target); // Set `src` and `srcset`
+        imgObserver.unobserve(entry.target); // Unobserve target
+      }
+    });
+  }, imgOptions);
+
   // Set observer to all images
   images.forEach((image) => {
-    imgObserver.observe(image);
+    imgObserver?.observe(image);
   });
 }
 
@@ -58,7 +61,7 @@ function removeImageObserver(): void {
 
   // Remove observer from all images
   images.forEach((image) => {
-    imgObserver.unobserve(image);
+    imgObserver?.unobserve(image);
   });
 }
 
