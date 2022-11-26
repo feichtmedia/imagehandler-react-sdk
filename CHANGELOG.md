@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.5.0] – 2022-11-26
+
+- Fixed issue with `defaultStyles` in config object which were overridden by the user's `defaultStyles` object.
+
 ## [0.4.0] – 2022-11-26
 
 - Changed way of implementing Intersection Observer to prevent issues in Next.js and Gatsby.js.

@@ -26,6 +26,10 @@ const Layout: React.FunctionComponent<LayoutProps> = ({
       config={{
         endpointDomain: "images.feicht.media",
         // progressiveImageLoading: false,
+        defaultStyles: {
+          transparentAltText: true,
+          fullWidth: true,
+        },
       }}
     >
       <main>

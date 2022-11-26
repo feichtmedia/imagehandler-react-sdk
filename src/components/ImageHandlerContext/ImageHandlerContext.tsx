@@ -16,12 +16,15 @@ const ImageHandlerContext: React.FunctionComponent<
     srcSetSizes: [480, 768, 992, 1280, 1920, 2048, 3840],
     optimizeSvg: false,
     progressiveImageLoading: true,
+    // User's configuration
+    ...config,
+    // Default styles
     defaultStyles: {
       fullWidth: true,
       transparentAltText: true,
+      // User's default styles
+      ...config.defaultStyles,
     },
-    // User's configuration
-    ...config,
   };
 
   return (
