@@ -1,10 +1,22 @@
 import React from "react";
 import Layout, { SectionContainer } from "./Layout";
-import { ImageHandler } from "@feichtmedia/imagehandler-react-sdk";
+import {
+  getImgSrc,
+  getImgSrcSet,
+  ImageHandler,
+} from "@feichtmedia/imagehandler-react-sdk";
 
 interface AppProps {}
 
 const App: React.FunctionComponent<AppProps> = () => {
+  const srcSet = getImgSrcSet(
+    "/99999/99999-12-20200929_apple-website-bild.jpg",
+    undefined,
+    undefined,
+    undefined,
+    [10, 20]
+  );
+
   return (
     <Layout pageTitle="ImageHandler React Component Demo">
       <SectionContainer title="Test">

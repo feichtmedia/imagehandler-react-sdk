@@ -33,6 +33,14 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
   // Use global configuration
   const config: ConfigurationContextType = useContext(ConfigurationContext);
 
+  // Fallback if config context is missing
+  if (!config || config.endpointDomain === "") {
+    console.error(
+      `ImageHandler: Please make sure a configuration context is provided and the ImageHandleer component is used inside a configuration context.`
+    );
+    return null;
+  }
+
   // Merge default styles with user's styles from props
   const styleObject: React.CSSProperties = {
     width: config.defaultStyles?.fullWidth ? "100%" : undefined,

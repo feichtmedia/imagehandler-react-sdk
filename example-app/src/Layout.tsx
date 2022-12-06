@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
 import {
   addLazyLoading,
-  ImageHandlerContext,
   removeLazyLoading,
 } from "@feichtmedia/imagehandler-react-sdk";
 
@@ -22,23 +21,12 @@ const Layout: React.FunctionComponent<LayoutProps> = ({
   }, []);
 
   return (
-    <ImageHandlerContext
-      config={{
-        endpointDomain: "images.feicht.media",
-        // progressiveImageLoading: false,
-        defaultStyles: {
-          transparentAltText: true,
-          fullWidth: true,
-        },
-      }}
-    >
-      <main>
-        <BoxedContainer>
-          {pageTitle && <h1 style={{ marginBottom: 20 }}>{pageTitle}</h1>}
-          {children}
-        </BoxedContainer>
-      </main>
-    </ImageHandlerContext>
+    <main>
+      <BoxedContainer>
+        {pageTitle && <h1 style={{ marginBottom: 20 }}>{pageTitle}</h1>}
+        {children}
+      </BoxedContainer>
+    </main>
   );
 };
 export default Layout;

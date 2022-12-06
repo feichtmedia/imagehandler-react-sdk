@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.1.0] – 2022-12-06
+
+- Added new helper functions `getImgSrc()` and `getImgSrcSet()` to generate a image src and src-set outside of the `ImageHandler` component.
+- Added fallback to `ImageHandler` context with `console.error` if the configuration context is missing.
+- Updated targets for query selector of image observer for lazy loading.
+
 ## [1.0.0] – 2022-11-26
 
 First major release.

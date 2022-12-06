@@ -1,5 +1,5 @@
 const imageTargets =
-  "[data-src], [data-dark-src], [data-light-src], [data-srcset]";
+  "img[data-src], img[data-srcset], picture source[data-src], picture source[data-srcset]";
 
 /**
  * Function to add lazy loading with Intersection Observer to a page.
