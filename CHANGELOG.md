@@ -2,9 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] – 2022-12-12
+
+- Added new prop `lazyLoading` to the `Image` component to give the user the option to disable the lazy loading and progressive image loading on single images.
+
 ## [1.1.0] – 2022-12-06
 
-- Added new helper functions `getImgSrc()` and `getImgSrcSet()` to generate a image src and src-set outside of the `ImageHandler` component.
+- Added new helper functions `getImgSrc()` and `getImgSrcSet()` to generate a image src and src-set outside of the `Image` component.
 - Added fallback to `ImageHandler` context with `console.error` if the configuration context is missing.
 - Updated targets for query selector of image observer for lazy loading.
 

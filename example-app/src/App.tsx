@@ -73,6 +73,14 @@ const App: React.FunctionComponent<AppProps> = () => {
 
         <Spacer height="100vh" />
 
+        <h2>Example without Lazy Loading</h2>
+        <ImageHandler
+          width={1280}
+          src="/99999/20201222-15-blog-dark-mode_titelbild.jpg"
+          hasSrcSet
+          lazyLoading={false}
+        />
+
         {/*
          *
          */}

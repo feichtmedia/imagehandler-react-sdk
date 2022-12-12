@@ -18,6 +18,7 @@ interface ImageComponentProps
   srcSetSizes?: number[];
   objectFit?: "cover" | "contain";
   filter?: ImageFilterType;
+  lazyLoading?: boolean;
 }
 
 const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
@@ -28,6 +29,7 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
   hasSrcSet = false,
   srcSetSizes,
   filter,
+  lazyLoading = true,
   ...props
 }) => {
   // Use global configuration
@@ -73,21 +75,6 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
     );
   }
 
-  // Get progressive blur image
-  const blurImage: string = generateImgSrc(
-    40,
-    0,
-    "cover",
-    mapFilterObjectToUrl({
-      blur: 5,
-      quality: 100,
-      stripExif: true, // Remove metadata for smaller filesize
-      stripIcc: true, // Remove metadata for smaller filesize
-    }),
-    preparedSrc,
-    config
-  );
-
   // Map filters to URL string
   const filterUrl: string = mapFilterObjectToUrl(filter) || "";
 
@@ -109,6 +96,28 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
     height,
     objectFit,
     filterUrl,
+    preparedSrc,
+    config
+  );
+
+  // Return image without lazy loading if the user does not want to lazy load the image
+  if (lazyLoading === false) {
+    return (
+      <img {...props} src={defaultImage} srcSet={srcSet} style={styleObject} />
+    );
+  }
+
+  // Get progressive blur image
+  const blurImage: string = generateImgSrc(
+    40,
+    0,
+    "cover",
+    mapFilterObjectToUrl({
+      blur: 5,
+      quality: 100,
+      stripExif: true, // Remove metadata for smaller filesize
+      stripIcc: true, // Remove metadata for smaller filesize
+    }),
     preparedSrc,
     config
   );
