@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] – 2023-05-05
+
+- Added output of GIF images when `optimizeGif` is set to `false` to `Image` component.
+- Updated type `ConfigurationContextType` with new config option `optimizeGif`.
+- Updated `ImageHandlerContext` with new config option `optimizeGif` and set it's default value to `false`.
+- Updated example app.
+
 ## [1.2.0] – 2022-12-12
 
 - Added new prop `lazyLoading` to the `Image` component to give the user the option to disable the lazy loading and progressive image loading on single images.

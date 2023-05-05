@@ -6,6 +6,7 @@ export type ConfigurationContextType = {
   useHttps?: boolean;
   srcSetSizes?: number[];
   optimizeSvg?: boolean;
+  optimizeGif?: boolean;
   progressiveImageLoading?: boolean;
   defaultStyles?: {
     fullWidth?: boolean;

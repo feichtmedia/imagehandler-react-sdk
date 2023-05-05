@@ -81,6 +81,17 @@ const App: React.FunctionComponent<AppProps> = () => {
           lazyLoading={false}
         />
 
+        <Spacer height="100vh" />
+
+        <h2>GIF example</h2>
+        <ImageHandler
+          width={1280}
+          src="/99999/20230505-092354-block-logo.gif"
+          hasSrcSet
+          alt="Alt Text"
+          title="Title"
+        />
+
         {/*
          *
          */}

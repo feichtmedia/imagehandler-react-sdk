@@ -75,6 +75,28 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
     );
   }
 
+  // If GIFs should not be optimized by config,
+  // check if the image is an GIF and if so, return it without optimization
+  if (config.optimizeGif === false && checkFiletype(preparedSrc, "gif")) {
+    const gifImageRequest = generateImgSrc(
+      undefined,
+      undefined,
+      "cover",
+      undefined,
+      preparedSrc,
+      config
+    );
+
+    return (
+      <img
+        {...props}
+        src={gifImageRequest}
+        loading="lazy"
+        style={styleObject}
+      />
+    );
+  }
+
   // Map filters to URL string
   const filterUrl: string = mapFilterObjectToUrl(filter) || "";
 
