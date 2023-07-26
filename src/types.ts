@@ -12,15 +12,16 @@ export type ConfigurationContextType = {
     fullWidth?: boolean;
     transparentAltText?: boolean;
   };
+  globalFilters?: ImageFilterType;
 };
 
 /**
  * Image Optimization Filters
  */
 export type ImageFilterType = {
-  backgroundColor?: HEX;
+  backgroundColor?: HEX | string;
   blur?: number;
-  fill?: HEX;
+  fill?: HEX | string;
   equalize?: boolean;
   noUpscale?: boolean;
   grayscale?: boolean;

@@ -97,8 +97,9 @@ const ImageComponent: React.FunctionComponent<ImageComponentProps> = ({
     );
   }
 
-  // Map filters to URL string
-  const filterUrl: string = mapFilterObjectToUrl(filter) || "";
+  // Map filters to URL string (pass global filters and user's filters as override)
+  const filterUrl: string =
+    mapFilterObjectToUrl({ ...config.globalFilters, ...filter }) || "";
 
   // Get src-set
   const srcSet: string | undefined = hasSrcSet

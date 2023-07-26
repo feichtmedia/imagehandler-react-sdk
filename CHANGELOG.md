@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] – 2023-07-26
+
+- Added ability to configure global image filter in the `ImageHandlerContext` which will be applied to every image request expect for those where the filters are override by image-specific filters.
+- Extended type definition `ConfigurationContextType` by `globalFilters`.
+- Updated type definition `ImageFilterType` for filter options to allow also custom string values for `backgroundColor` and `fill` instead of just Hex color values.
+- Fixed issue in helper function `generateImgSrc()` where operator `>` was unsed on a string value.
+- Fixed issue in helper function `mapFilterObjectToUrl()` where the `blur` filter was applied even if it is was set to `undefined`.
+
 ## [1.3.0] – 2023-05-05
 
 - Added output of GIF images when `optimizeGif` is set to `false` to `Image` component.

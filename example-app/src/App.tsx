@@ -35,6 +35,7 @@ const App: React.FunctionComponent<AppProps> = () => {
           alt="Apple Bild"
           title="Apple Bild"
           src="/99999/99999-12-20200929_apple-website-bild.jpg"
+          filter={{ blur: undefined }}
           width={960}
           hasSrcSet
         />

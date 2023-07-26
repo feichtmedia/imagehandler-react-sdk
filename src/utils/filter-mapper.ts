@@ -29,11 +29,11 @@ export function mapFilterObjectToUrl(
           );
           return; // Next iteration
         }
+        // Append to URL
+        filterUrl = `${filterUrl}/filters:blur(${filterObject[
+          filter
+        ]?.toString()})`;
       }
-      // Append to URL
-      filterUrl = `${filterUrl}/filters:blur(${filterObject[
-        filter
-      ]?.toString()})`;
     } else if (filter === "fill") {
       // ----- Fill Color
       filterUrl = `${filterUrl}/filters:fill(${filterObject[filter]})`;

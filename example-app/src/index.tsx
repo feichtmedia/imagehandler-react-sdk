@@ -18,6 +18,9 @@ root.render(
           transparentAltText: true,
           fullWidth: true,
         },
+        globalFilters: {
+          blur: 10,
+        },
       }}
     >
       <App />

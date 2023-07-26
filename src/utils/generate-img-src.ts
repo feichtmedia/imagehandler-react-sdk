@@ -22,8 +22,8 @@ export function generateImgSrc(
   let resolution: string = "";
   if (width || height) {
     // Prepare values to have a min. value of 0
-    const w = width > 0 ? width : 0;
-    const h = height > 0 ? height : 0;
+    const w = parseInt(width.toString()) > 0 ? width : 0;
+    const h = parseInt(height.toString()) > 0 ? height : 0;
     // Check if at least one value is greather than 0
     if (w !== 0 || h !== 0) {
       resolution = `/${w.toString() || "0"}x${h.toString() || "0"}`;
