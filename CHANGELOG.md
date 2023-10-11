@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.5.0] – 2023-10-11
+
+- Added `"use client"` directive to `ImageComponent`, `ConfigurationContext` and `ImageHandlerContext` which updated the components to client-components. This adds support for the Next.js app router and React 18.
+
 ## [1.4.0] – 2023-07-26
 
 - Added ability to configure global image filter in the `ImageHandlerContext` which will be applied to every image request expect for those where the filters are override by image-specific filters.

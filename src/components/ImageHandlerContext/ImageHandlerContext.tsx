@@ -1,3 +1,5 @@
+"use client";
+
 import React from "react";
 import { ConfigurationContextType } from "../../types";
 import { ConfigurationContext } from "./context";

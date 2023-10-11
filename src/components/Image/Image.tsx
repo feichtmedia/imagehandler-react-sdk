@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useContext } from "react";
 import { ConfigurationContext } from "../ImageHandlerContext/context";
 import { ConfigurationContextType, ImageFilterType } from "../../types";
