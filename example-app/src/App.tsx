@@ -1,7 +1,6 @@
-import React from "react";
+import React, { createRef, useEffect } from "react";
 import Layout, { SectionContainer } from "./Layout";
 import {
-  getImgSrc,
   getImgSrcSet,
   ImageHandler,
 } from "@feichtmedia/imagehandler-react-sdk";
@@ -9,13 +8,20 @@ import {
 interface AppProps {}
 
 const App: React.FunctionComponent<AppProps> = () => {
+  // Get Image URL
   const srcSet = getImgSrcSet(
-    "/99999/99999-12-20200929_apple-website-bild.jpg",
+    "/99999/99999-12-20201021_luca-bravo-zAjdgNXsMeg-unsplash.jpg",
     undefined,
     undefined,
     undefined,
     [10, 20]
   );
+
+  // Ref to image item
+  const imageItemRef = createRef<HTMLImageElement>();
+  useEffect(() => {
+    console.log(imageItemRef.current?.src);
+  }, [imageItemRef.current]);
 
   return (
     <Layout pageTitle="ImageHandler React Component Demo">
@@ -32,9 +38,9 @@ const App: React.FunctionComponent<AppProps> = () => {
         <p>Hello World</p>
 
         <ImageHandler
-          alt="Apple Bild"
-          title="Apple Bild"
-          src="/99999/99999-12-20200929_apple-website-bild.jpg"
+          alt="Demo Image"
+          title="Demo Image"
+          src="/99999/99999-12-20201021_luca-bravo-zAjdgNXsMeg-unsplash.jpg"
           filter={{ blur: undefined }}
           width={960}
           hasSrcSet
@@ -91,6 +97,27 @@ const App: React.FunctionComponent<AppProps> = () => {
           hasSrcSet
           alt="Alt Text"
           title="Title"
+        />
+
+        <Spacer height="100vh" />
+
+        <h2>Watermark Example</h2>
+        <ImageHandler
+          ref={imageItemRef}
+          alt="Demo Image"
+          title="Demo Image"
+          src="/99999/99999-12-20201021_luca-bravo-zAjdgNXsMeg-unsplash.jpg"
+          filter={{
+            blur: 0,
+            watermark: {
+              key: "/99999/20221120-171024-wordmarkblueresp.svg",
+              x: 1920 / 2 - (1920 * 0.2) / 2, // 50% of width - 50% of watermark width (watermark is 20% of image width)
+              y: 1920 * 0.02,
+              hRatio: 20,
+            },
+          }}
+          width={1920}
+          lazyLoading={false}
         />
 
         {/*

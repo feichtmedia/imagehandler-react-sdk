@@ -13,7 +13,7 @@ root.render(
       config={{
         endpointDomain: "images.feicht.media",
         useHttps: true,
-        // progressiveImageLoading: false,
+        progressiveImageLoading: false,
         defaultStyles: {
           transparentAltText: true,
           fullWidth: true,

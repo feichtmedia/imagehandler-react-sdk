@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.0] – 2023-11-16
+
+- Updated the `ImageComponent` component with `forwardRef` to allow the user to pass a ref to the component.
+- Extended the filter options by the 'watermark' filter. Updated also all related resources: types `ImageFilterType` and `WatermarkFilterType`, filter mapper function `mapFilterObjectToUrl()`
+
 ## [1.5.0] – 2023-10-11
 
 - Added `"use client"` directive to `ImageComponent`, `ConfigurationContext` and `ImageHandlerContext` which updated the components to client-components. This adds support for the Next.js app router and React 18.

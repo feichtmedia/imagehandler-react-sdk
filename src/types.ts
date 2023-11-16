@@ -29,17 +29,22 @@ export type ImageFilterType = {
   rgb?: [number, number, number];
   rotate?: number;
   upscale?: boolean;
-  // watermark?: {
-  //   key: string;
-  //   xPos: number;
-  //   yPos: number;
-  //   alpha: number;
-  //   width?: number;
-  //   height?: number;
-  // };
+  watermark?: WatermarkFilterType;
   stripExif?: boolean;
   stripIcc?: boolean;
   customFilter?: string;
+};
+
+/**
+ * Single filter types
+ */
+type WatermarkFilterType = {
+  key: string;
+  x: number;
+  y: number;
+  alpha?: number;
+  wRatio?: number;
+  hRatio?: number;
 };
 
 /**
