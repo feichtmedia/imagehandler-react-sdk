@@ -33,6 +33,7 @@ const App: React.FunctionComponent<AppProps> = () => {
         <ImageHandler
           title="FeichtMedia Logo"
           src="/99999/20221120-171024-wordmarkblueresp.svg"
+          lazyLoading={false}
         />
 
         <p>Hello World</p>

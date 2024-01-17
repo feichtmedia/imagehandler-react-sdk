@@ -78,7 +78,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           {...props}
           ref={ref}
           src={svgImageRequest}
-          loading="lazy"
+          loading={lazyLoading === false ? undefined : "lazy"}
           style={styleObject}
         />
       );
@@ -101,7 +101,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           {...props}
           ref={ref}
           src={gifImageRequest}
-          loading="lazy"
+          loading={lazyLoading === false ? undefined : "lazy"}
           style={styleObject}
         />
       );
