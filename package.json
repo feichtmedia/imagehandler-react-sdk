@@ -1,6 +1,6 @@
 {
   "name": "@feichtmedia/imagehandler-react-sdk",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "React SDK for FeichtMedia ImageManager and ImageHandler for use inside a React application.",
   "author": {
     "name": "FeichtMedia",

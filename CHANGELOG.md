@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.3] – 2024-01-17
+
+- Created missing build files from previous release version `1.6.1`.
+
 ## [1.6.2] – 2024-01-17
 
 - Created missing build files from previous release (version `1.6.1`).
