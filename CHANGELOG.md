@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.2] – 2024-01-17
+
+- Created missing build files from previous release (version `1.6.1`).
+
 ## [1.6.1] – 2024-01-17
 
 - Fixed issue in `ImageComponent` where the prop value `lazyLoading=false` was not working for GIFs when `optimizeGif` was set to `true` and not working for SVGs when `optimizeSvg` was set to `true` in the `ImageHandlerContext` context config.
