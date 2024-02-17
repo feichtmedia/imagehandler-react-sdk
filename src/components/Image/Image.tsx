@@ -21,6 +21,7 @@ interface ImageComponentProps
   objectFit?: "cover" | "contain";
   filter?: ImageFilterType;
   lazyLoading?: boolean;
+  placeholder?: string; // Fixes issue where a prop `placeholder` is required
 }
 
 const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(

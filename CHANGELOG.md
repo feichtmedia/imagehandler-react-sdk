@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.4] – 2024-02-17
+
+- Updated dependencies to the latest versions.
+- Fixed issue where a prop `placeholder` was required on the `ImageComponent`/`ImageHandler` component and caused a TypeScript error when it was not set.
+
 ## [1.6.3] – 2024-01-17
 
 - Created missing build files from previous release version `1.6.1`.
