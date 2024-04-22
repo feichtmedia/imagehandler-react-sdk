@@ -34,6 +34,8 @@ const App: React.FunctionComponent<AppProps> = () => {
           title="FeichtMedia Logo"
           src="/99999/20221120-171024-wordmarkblueresp.svg"
           lazyLoading={false}
+          htmlWidth={300}
+          style={{ width: undefined }}
         />
 
         <p>Hello World</p>
@@ -44,7 +46,9 @@ const App: React.FunctionComponent<AppProps> = () => {
           src="/99999/99999-12-20201021_luca-bravo-zAjdgNXsMeg-unsplash.jpg"
           filter={{ blur: undefined }}
           width={960}
+          htmlWidth={480} // just for testing we use different value than in `width`
           hasSrcSet
+          style={{ width: undefined }}
         />
 
         <Spacer height="300vh" />

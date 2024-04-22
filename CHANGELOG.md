@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.5] – 2024-04-22
+
+- Added prop `htmlWidth` and `htmlHeight` to the `ImageComponent` component to allow the user to set the explicit width and height of the image in the HTML. If `htmlWidth` and/or `htmlHeight` are set, the `width` and `height` will be added to the `<img />` element in the HTML. The default `width` and `height` props could not be used because they are used for the image optimization.
+
 ## [1.6.4] – 2024-02-17
 
 - Updated dependencies to the latest versions.

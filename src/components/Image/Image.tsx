@@ -16,6 +16,8 @@ interface ImageComponentProps
   src: string;
   width?: number;
   height?: number;
+  htmlWidth?: number;
+  htmlHeight?: number;
   hasSrcSet?: boolean;
   srcSetSizes?: number[];
   objectFit?: "cover" | "contain";
@@ -30,6 +32,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       src,
       width = 0,
       height = 0,
+      htmlWidth,
+      htmlHeight,
       objectFit = "cover",
       hasSrcSet = false,
       srcSetSizes,
@@ -79,6 +83,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           {...props}
           ref={ref}
           src={svgImageRequest}
+          width={htmlWidth}
+          height={htmlHeight}
           loading={lazyLoading === false ? undefined : "lazy"}
           style={styleObject}
         />
@@ -102,6 +108,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           {...props}
           ref={ref}
           src={gifImageRequest}
+          width={htmlWidth}
+          height={htmlHeight}
           loading={lazyLoading === false ? undefined : "lazy"}
           style={styleObject}
         />
@@ -141,6 +149,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           {...props}
           ref={ref}
           src={defaultImage}
+          width={htmlWidth}
+          height={htmlHeight}
           srcSet={srcSet}
           style={styleObject}
         />
@@ -172,6 +182,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           srcSet={undefined} // Will be replaced by JS
           data-src={defaultImage}
           data-srcset={srcSet}
+          width={htmlWidth}
+          height={htmlHeight}
           style={styleObject}
         />
       );
@@ -183,6 +195,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           ref={ref}
           src={defaultImage}
           srcSet={srcSet}
+          width={htmlWidth}
+          height={htmlHeight}
           loading="lazy"
           style={styleObject}
         />
