@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.6.6] – 2024-11-21
+
+- Updated dependencies to the latest versions for the package and example app.
+- Updated the peer dependencies `react` and `react-dom` to support React 18.2.0 and higher. This allows using the package with for example Next.js 15 and React 19.
+- Updated content of the `README.md` file.
+
 ## [1.6.5] – 2024-04-22
 
 - Added prop `htmlWidth` and `htmlHeight` to the `ImageComponent` component to allow the user to set the explicit width and height of the image in the HTML. If `htmlWidth` and/or `htmlHeight` are set, the `width` and `height` will be added to the `<img />` element in the HTML. The default `width` and `height` props could not be used because they are used for the image optimization.

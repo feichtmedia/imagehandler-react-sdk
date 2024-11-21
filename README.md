@@ -1,3 +1,1 @@
-# ImageHandler React Component
-
-A description is coming soon...
+# ImageHandler React SDK
