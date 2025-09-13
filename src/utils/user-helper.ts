@@ -5,7 +5,6 @@
 import { useContext } from "react";
 import { ConfigurationContext } from "../components/ImageHandlerContext/context";
 import { ConfigurationContextType, ImageFilterType } from "../types";
-import { mapFilterObjectToUrl } from "./filter-mapper";
 import { prepareSrc } from "./general";
 import { generateImgSrc } from "./generate-img-src";
 import { generateSrcSet } from "./generate-src-set";
@@ -38,9 +37,6 @@ export function getImgSrc(
     return "";
   }
 
-  // Map filters to URL string if filters where provided
-  const filterUrl: string = filter ? mapFilterObjectToUrl(filter) : "";
-
   // Prepeare image src string
   const preparedImageSrc: string = prepareSrc(src);
 
@@ -49,7 +45,7 @@ export function getImgSrc(
     width,
     height,
     objectFit,
-    filterUrl,
+    filter,
     preparedImageSrc,
     configContext
   );
@@ -86,9 +82,6 @@ export function getImgSrcSet(
     return "";
   }
 
-  // Map filters to URL string if filters where provided
-  const filterUrl: string = filter ? mapFilterObjectToUrl(filter) : "";
-
   // Prepeare image src string
   const preparedImageSrc: string = prepareSrc(src);
 
@@ -97,7 +90,7 @@ export function getImgSrcSet(
     sizes || configContext.srcSetSizes,
     maxImageWidth,
     objectFit,
-    filterUrl,
+    filter,
     preparedImageSrc,
     configContext
   );

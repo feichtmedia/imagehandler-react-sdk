@@ -15,10 +15,56 @@ export function mapFilterObjectToUrl(
   let filterUrl: string = "";
 
   Object.keys(filterObject).forEach((filter) => {
-    if (filter === "backgroundColor") {
+    if (filter === "animated") {
+      //
+      // ----- Animated
+      if (
+        filterObject["animated"] === true ||
+        filterObject["animated"] === false
+      ) {
+        filterUrl = `${filterUrl}/filters:animated(${filterObject["animated"]})`;
+      }
+
+      //
+    } else if (filter === "autojpg" && filterObject[filter] === true) {
+      //
+      // ----- Auto JPG
+      filterUrl = `${filterUrl}/filters:autojpg()`;
+
+      //
+    } else if (filter === "format" && filterObject[filter]) {
+      //
+      // ----- Format
+      filterUrl = `${filterUrl}/filters:format(${filterObject[filter]})`;
+
+      //
+    } else if (
+      filter === "proportion" &&
+      filterObject[filter] !== undefined &&
+      filterObject[filter] !== null
+    ) {
+      //
+      // ----- Proportion
+      // Check if the value is between 0 and 1
+      if (
+        filterObject[filter] < 0 ||
+        filterObject[filter] > 1 ||
+        isNaN(filterObject[filter])
+      ) {
+        console.error(
+          `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 1 but is ${filterObject[filter]}`
+        );
+        return; // Next iteration
+      }
+      filterUrl = `${filterUrl}/filters:proportion(${filterObject[filter]})`;
+
+      //
+    } else if (filter === "backgroundColor" && filterObject[filter]) {
       //
       // ----- Background Color
-      filterUrl = `${filterUrl}/filters:background_color(${filterObject[filter]})`;
+      filterUrl = `${filterUrl}/filters:background_color(${normalizeHexColor(
+        filterObject[filter]
+      )})`;
 
       //
     } else if (filter === "blur") {
@@ -39,10 +85,12 @@ export function mapFilterObjectToUrl(
       }
 
       //
-    } else if (filter === "fill") {
+    } else if (filter === "fill" && filterObject[filter]) {
       //
       // ----- Fill Color
-      filterUrl = `${filterUrl}/filters:fill(${filterObject[filter]})`;
+      filterUrl = `${filterUrl}/filters:fill(${normalizeHexColor(
+        filterObject[filter]
+      )})`;
 
       //
     } else if (filter === "equalize" && filterObject[filter] === true) {
@@ -79,6 +127,12 @@ export function mapFilterObjectToUrl(
       //
       // ----- Strip ICC
       filterUrl = `${filterUrl}/filters:strip_icc()`;
+
+      //
+    } else if (filter === "stretch" && filterObject[filter] === true) {
+      //
+      // ----- Stretch
+      filterUrl = `${filterUrl}/filters:stretch()`;
 
       //
     } else if (filter === "quality") {
@@ -143,6 +197,34 @@ export function mapFilterObjectToUrl(
       ]?.toString()})`;
 
       //
+    } else if (filter === "sharpen") {
+      //
+      // ----- Sharpen
+      if (filterObject["sharpen"]) {
+        // Get values
+        const sharpenAmount = filterObject["sharpen"].amount;
+        const sharpenRadius = filterObject["sharpen"].radius;
+        const sharpenLuminance = filterObject["sharpen"].luminanceOnly || false;
+
+        // Check for correct values
+        if (sharpenAmount < 0 || sharpenAmount > 10) {
+          console.error(
+            `ImageHandler: Failed appending 'amount' for filter 'sharpen'. The first value must be between 0 and 10 but is ${sharpenAmount}`
+          );
+          return; // Next iteration
+        }
+        if (sharpenRadius < 0 || sharpenRadius > 2) {
+          console.error(
+            `ImageHandler: Failed appending 'radius' for filter 'sharpen'. The second value must be between 0 and 10 but is ${sharpenRadius}`
+          );
+          return; // Next iteration
+        }
+
+        // Append to URL
+        filterUrl = `${filterUrl}/filters:sharpen(${sharpenAmount},${sharpenRadius},${sharpenLuminance})`;
+      }
+
+      //
     } else if (filter === "watermark") {
       //
       // ----- Watermark
@@ -182,6 +264,37 @@ export function mapFilterObjectToUrl(
       }
 
       //
+    } else if (filter === "smartCrop") {
+      //
+      // ----- Smart Crop
+      // Check if filterObject["smartCrop"] is defined
+      if (filterObject["smartCrop"]) {
+        // Syntax: /filters:smart_crop([face_index[,face_padding]])
+        const faceIndex = filterObject["smartCrop"].faceIndex;
+        const facePadding = filterObject["smartCrop"].facePadding;
+
+        if (
+          (faceIndex !== undefined && faceIndex < 0) ||
+          (facePadding !== undefined && facePadding < 0)
+        ) {
+          console.error(
+            "ImageHandler: Failed appending filter 'smartCrop'. Both faceIndex and facePadding must be at least 0."
+          );
+          return; // Next iteration
+        }
+
+        const smartCropValues = [
+          faceIndex !== undefined ? faceIndex : null, // face_index
+          facePadding !== undefined ? facePadding : null, // face_padding
+        ];
+
+        // Append to URL
+        filterUrl = `${filterUrl}/filters:smart_crop(${smartCropValues
+          .filter((value) => value !== null) // Check explicitly for null, because 0 is a valid value in this case
+          .join(",")})`;
+      }
+
+      //
     } else if (filter === "customFilter") {
       //
       // ----- Custom Filter
@@ -202,4 +315,19 @@ export function mapFilterObjectToUrl(
 
   // Return filter URL
   return filterUrl;
+}
+
+/**
+ * Function to normalize hex color codes by removing the leading '#' if present.
+ * @param hex Hex color code (e.g. '#ff0000' or 'ff0000')
+ * @returns Normalized hex color code (e.g. 'ff0000')
+ */
+function normalizeHexColor(hex: string): string {
+  // Remove leading '#' if present
+  if (hex.startsWith("#")) {
+    hex = hex.slice(1);
+  }
+
+  // Return normalized hex color
+  return hex;
 }

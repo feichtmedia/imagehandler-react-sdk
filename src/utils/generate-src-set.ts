@@ -1,4 +1,4 @@
-import { ConfigurationContextType } from "../types";
+import { ConfigurationContextType, ImageFilterType } from "../types";
 import { generateImgSrc } from "./generate-img-src";
 
 /**
@@ -6,7 +6,7 @@ import { generateImgSrc } from "./generate-img-src";
  * @param sizes Array of sizes to generate the src-set for
  * @param maxImageWidth Max. width of the image
  * @param objectFit Fill mode of the original image in the optimized image's container size
- * @param filterUrl Filter url from `mapFilterObjectToUrl()`
+ * @param filterObject Filter object from the `Image` component props or global config
  * @param imgSrc Prepared image source from `prepareSrc()`
  * @param config Config object from the global context
  * @returns String of image sources seperated by commas
@@ -15,7 +15,7 @@ export function generateSrcSet(
   sizes: number[] = [480, 768, 992, 1280, 1920, 2048, 3840],
   maxImageWidth: number | undefined,
   objectFit: "cover" | "contain" = "cover",
-  filterUrl: string | undefined = "",
+  filterObject: ImageFilterType = {},
   imgSrc: string,
   config: ConfigurationContextType
 ): string {
@@ -25,7 +25,14 @@ export function generateSrcSet(
   // Loop through sizes and generate a image src for each size
   sizes.forEach((size) => {
     if (maxImageWidth && size > maxImageWidth) return; // Stop if the size is greater than the max. image width specified by the user
-    const src = generateImgSrc(size, 0, objectFit, filterUrl, imgSrc, config); // Create image src for current sizes
+    const src = generateImgSrc(
+      size,
+      0,
+      objectFit,
+      filterObject,
+      imgSrc,
+      config
+    ); // Create image src for current sizes
     srcSet.push(`${src} ${size}w`); // Push to array
   });
 
@@ -35,7 +42,7 @@ export function generateSrcSet(
       maxImageWidth,
       0,
       objectFit,
-      filterUrl,
+      filterObject,
       imgSrc,
       config
     ); // Create image src for current sizes

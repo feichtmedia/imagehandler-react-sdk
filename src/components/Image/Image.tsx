@@ -3,7 +3,6 @@
 import React, { useContext } from "react";
 import { ConfigurationContext } from "../ImageHandlerContext/context";
 import { ConfigurationContextType, ImageFilterType } from "../../types";
-import { mapFilterObjectToUrl } from "../../utils/filter-mapper";
 import { checkFiletype, prepareSrc } from "../../utils/general";
 import { generateImgSrc } from "../../utils/generate-img-src";
 import { generateSrcSet } from "../../utils/generate-src-set";
@@ -116,9 +115,11 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       );
     }
 
-    // Map filters to URL string (pass global filters and user's filters as override)
-    const filterUrl: string =
-      mapFilterObjectToUrl({ ...config.globalFilters, ...filter }) || "";
+    // Join the global filters with the user's filters (user's filters have priority)
+    const joinedFilters: ImageFilterType = {
+      ...config.globalFilters,
+      ...filter,
+    };
 
     // Get src-set
     const srcSet: string | undefined = hasSrcSet
@@ -126,7 +127,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           srcSetSizes || config.srcSetSizes,
           width,
           objectFit,
-          filterUrl,
+          joinedFilters,
           preparedSrc,
           config
         )
@@ -137,7 +138,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       width,
       height,
       objectFit,
-      filterUrl,
+      joinedFilters,
       preparedSrc,
       config
     );
@@ -162,12 +163,12 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       40,
       0,
       "cover",
-      mapFilterObjectToUrl({
+      {
         blur: 5,
         quality: 100,
         stripExif: true, // Remove metadata for smaller filesize
         stripIcc: true, // Remove metadata for smaller filesize
-      }),
+      },
       preparedSrc,
       config
     );

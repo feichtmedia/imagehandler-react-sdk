@@ -15,6 +15,7 @@ const ImageHandlerContext: React.FunctionComponent<
   const contextValues: ConfigurationContextType = {
     // Default Values
     useHttps: true,
+    useQueryParams: false,
     srcSetSizes: [480, 768, 992, 1280, 1920, 2048, 3840],
     optimizeSvg: false,
     optimizeGif: false,

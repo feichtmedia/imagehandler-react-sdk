@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.7.0] – 2025-09-13
+
+**Support for additional filters**
+
+- Added support for additional filters: animated, autojpg, format, proportion, sharpen, smartCrop, stretch.
+- Added the new helper function `normalizeHexColor()` to normalize hex color values to a 6-digit format without the leading `#` character.
+- Updated the `mapFilterObjectToUrl()` function to use the new `normalizeHexColor()` function to normalize hex color values for the `backgroundColor` and `fill` filter options.
+- Updated the `mapFilterObjectToUrl()` function to map the new filter options to the URL string.
+- Updated type definitons to include new filter options: `ImageFilterType`, `SmartCropFilterType`.
+
+**Support for query parameters in image requests**
+
+- Added support for image requests using query parameters instead of URL path segments.
+- Added additional typings.
+- Added the `createQueryParams()` function to map width, height, filters and objectFit to query parameters.
+- Updated the `generateImgSrc()` and `generateSrcSet()` functions to support image requests using query parameters.
+- Updated the configuration context type `ConfigurationContextType` accordingly with the new `useQueryParams` option. The default value is `false` to keep the current behavior.
+- Updated the `ImageComponent` component, `getImgSrc()` and `getImgSrcSet()` helper functions to not map the filters to a URL string anymore, as the filters are now passed as an object to the `generateImgSrc()` and `generateSrcSet()` functions. This allows passing it to the `createQueryParams()` function when `useQueryParams` is set to `true`.
+
 ## [1.6.6] – 2024-11-21
 
 - Updated dependencies to the latest versions for the package and example app.

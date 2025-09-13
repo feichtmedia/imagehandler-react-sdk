@@ -80,7 +80,15 @@ const App: React.FunctionComponent<AppProps> = () => {
         <ImageHandler
           width={1280}
           src="/99999/99999-8-20200927_overview-awards-poster.jpg"
-          hasSrcSet
+          filter={{
+            sharpen: {
+              amount: 5,
+              radius: 1,
+              luminanceOnly: true,
+            },
+            stretch: false,
+          }}
+          hasSrcSet={false}
         />
 
         <Spacer height="100vh" />
@@ -99,7 +107,10 @@ const App: React.FunctionComponent<AppProps> = () => {
         <ImageHandler
           width={1280}
           src="/99999/20230505-092354-block-logo.gif"
-          hasSrcSet
+          filter={{
+            animated: true,
+          }}
+          hasSrcSet={false}
           alt="Alt Text"
           title="Title"
         />
@@ -123,6 +134,36 @@ const App: React.FunctionComponent<AppProps> = () => {
           }}
           width={1920}
           lazyLoading={false}
+        />
+
+        <Spacer height="100vh" />
+
+        <h2>Smart Crop Example</h2>
+        <ImageHandler
+          alt="Smart Crop"
+          title="Smart Crop"
+          src="/99999/99999-12-20201016_austin-distel-mpN7xjKQ_Ns-unsplash.jpg"
+          filter={{
+            smartCrop: {
+              faceIndex: 0,
+              facePadding: 20,
+            },
+          }}
+          // width={300}
+          htmlWidth={300}
+          style={{ width: undefined }}
+          lazyLoading={false}
+        />
+
+        <Spacer height="100vh" />
+
+        <h2>Background fill and Hex-Code-Normalization</h2>
+        <ImageHandler
+          src="/99999/20250703-144024-C5.png"
+          filter={{ backgroundColor: "#808080" }}
+          width={300}
+          style={{ width: undefined }}
+          htmlWidth={300}
         />
 
         {/*
