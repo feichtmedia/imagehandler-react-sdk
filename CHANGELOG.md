@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+**Dependency and toolchain maintenance:**
+
+This release only touches dependencies and tooling. The public API, the generated image request URLs and the `srcSet` values are unchanged.
+
+- Added a `typecheck` script (`tsc --noEmit`) to type-check the sources without writing a build.
+- Updated the development dependencies to their current versions: TypeScript to `5.9.3`, `@types/react` to `19.3.0` and `@types/node` to `24.13.5`. The build output is unchanged apart from a newer `__importStar` helper emitted by TypeScript and cosmetic parentheses in two generated type declarations.
+- Updated the `peerDependencies` to no longer declare `react-dom`. The SDK never imports `react-dom`, so the entry only added an install-time constraint — and, because npm installs peer dependencies automatically, it also placed a second copy of React DOM inside the SDK's own `node_modules`. The `react` peer range stays at `>=18.2.0`: it already covers React 19 and was verified against React 19.3.0 and Next.js 16.3.5 with npm, pnpm and Yarn, none of which report a peer warning.
+- Fixed `npm run build` failing on a fresh clone. The script started with `rm -r ./dist`, which errors when `dist/` does not exist yet, and it never does on a fresh clone because the directory is gitignored. It now uses `rm -rf ./dist`.
+- Removed the unused `@types/react-dom` development dependency.
+
 ## [1.7.0] – 2025-09-13
 
 **Support for additional filters**
