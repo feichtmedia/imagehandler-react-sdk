@@ -66,6 +66,10 @@ The values that end up in an image request URL — the `src` prop, the filter va
 - Fixed `addLazyLoading()` leaking the previous `IntersectionObserver` when it was called more than once, for example in React's StrictMode or on a route change. It now tears down the existing observer first.
 - Fixed `removeLazyLoading()` leaving elements observed. It queried the elements still carrying a `data-src` attribute and unobserved those, which missed every element that had already been swapped or removed from the DOM. It calls `disconnect()` now.
 
+**Build:**
+
+- Changed `tsconfig.json` to set `"types": []`. The SDK is browser-only and imports nothing from Node, but `@types/node` was still picked up as an ambient type package and contributes a `/// <reference lib="es2020" />`, which silently widened the effective `lib` far past the declared ES2017. ES2019+ APIs therefore type-checked cleanly and would only fail in the browser — which is how the `Object.fromEntries()` call above shipped in 1.7.0. `npm run typecheck` now enforces the declared `lib`; verified with a probe that an `Object.fromEntries()` call fails with TS2550.
+
 **Dependency and toolchain maintenance:**
 
 This release only touches dependencies and tooling. The public API, the generated image request URLs and the `srcSet` values are unchanged.
