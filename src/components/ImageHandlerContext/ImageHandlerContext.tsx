@@ -34,7 +34,7 @@ function withoutUndefined<T extends object>(source: T | undefined): Partial<T> {
 const ImageHandlerContext: React.FunctionComponent<
   ImageHandlerContextProps
 > = ({ config, children }) => {
-  const buildContextValues = (): ConfigurationContextType => {
+  const contextValues: ConfigurationContextType = React.useMemo(() => {
     // Fallback if no configuration was passed at all
     if (!config) {
       logOnce(
@@ -62,9 +62,7 @@ const ImageHandlerContext: React.FunctionComponent<
         ...withoutUndefined(config?.defaultStyles),
       },
     };
-  };
-
-  const contextValues: ConfigurationContextType = buildContextValues();
+  }, [config]);
 
   return (
     <ConfigurationContext.Provider value={contextValues}>

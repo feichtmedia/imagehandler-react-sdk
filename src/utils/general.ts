@@ -102,14 +102,23 @@ export function prepareSrc(src: string): string {
  * @param endpointDomain Endpoint domain from the global config
  * @returns Normalized endpoint domain without protocol and trailing slash
  */
+let lastEndpointDomainInput: string | undefined;
+let lastEndpointDomainResult = "";
 
 export function normalizeEndpointDomain(endpointDomain: string): string {
   if (typeof endpointDomain !== "string") return "";
 
-  return endpointDomain
+  // The domain is effectively constant, but this runs once per generated URL
+  // and therefore up to eight times per image. Remember the last result.
+  if (endpointDomain === lastEndpointDomainInput) return lastEndpointDomainResult;
+  lastEndpointDomainInput = endpointDomain;
+
+  lastEndpointDomainResult = endpointDomain
     .replace(/[\s\u0000-\u001f\u007f-\u009f]/g, "") // Drop whitespace and control characters
     .replace(/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//, "") // Drop a leading protocol
     .replace(/\/+$/, ""); // Drop trailing slashes
+
+  return lastEndpointDomainResult;
 }
 
 /**

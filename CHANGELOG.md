@@ -18,6 +18,17 @@ All notable changes to this project will be documented in this file.
 - Changed a filter that the active URL mode cannot express from `console.error` to `console.warn`. Dropping `blur` in query-parameter mode is a limitation of that mode, not a mistake by the consumer. A value the SDK genuinely cannot use — a `blur` of `500`, a malformed `rgb` array, a missing `endpointDomain` — stays a `console.error`.
 - Changed every diagnostic message to be logged at most once per session. A misconfiguration used to be reported on every render and once per `srcSet` entry, so a single wrong filter on a single image produced eight messages per render. Messages include their offending value, so a changed value is still reported.
 
+**Performance:**
+
+- Added a cache that maps a filter object to its URL string, keyed on object identity. `generateSrcSet()` calls `generateImgSrc()` once per `srcSet` size with the very same filter object, so the identical filter string used to be rebuilt up to eight times per image. A filter object must not be mutated after it was handed to the SDK.
+- Added `mergeFilters()`, which skips building a merged filter object when only the global filters or only the `filter` prop carry anything — the common case. That removes one object allocation per image per render and keeps the object identity stable across renders, so the filter cache can actually hit.
+- Changed the blurred placeholder's filter object to a module constant instead of an object literal rebuilt per image, so it resolves from the filter cache after the first image.
+- Changed `normalizeEndpointDomain()` to remember its last result. The domain is effectively constant but the function ran once per generated URL, which is up to eight times per image.
+- Changed the `ImageHandlerContext` provider to memoize the merged configuration object. It was rebuilt on every render, which gave the context a new value identity each time and re-rendered every `ImageHandler` below it.
+- Changed `ImageHandler` to build the blurred placeholder URL only when progressive image loading is actually enabled.
+- Changed `generateSrcSet()` to skip duplicate and unusable sizes instead of emitting a `srcSet` entry for them.
+- Measured against v1.7.0 on 100 images with a seven-entry `srcSet`, a fallback `src` and a placeholder each: **22–33 % less time per render**.
+
 **Security fixes in the generated image request URLs:**
 
 The values that end up in an image request URL — the `src` prop, the filter values and `endpointDomain` — were written into the URL verbatim. A project that fills any of them from content it does not fully control (a CMS field, a DAM filename, a URL parameter) could produce a URL that no longer points where it was supposed to. All generated URLs for well-formed sources and filter values are unchanged.

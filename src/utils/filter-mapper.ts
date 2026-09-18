@@ -38,6 +38,15 @@ function isFiniteNumber(value: unknown): value is number {
 }
 
 /**
+ * Cache of already mapped filter objects.
+ *
+ * `generateSrcSet()` calls `generateImgSrc()` once per `srcSet` size with the
+ * very same filter object, so without this the identical filter string would be
+ * rebuilt up to eight times per image. Keyed on object identity, which React
+ * props give us for free; a filter object must not be mutated after it was
+ * passed to the SDK.
+ */
+const filterUrlCache = new WeakMap<object, string>();
 
 /**
  * Escape the characters that would break out of a filter argument list or
@@ -64,6 +73,23 @@ export function mapFilterObjectToUrl(
   // Fallback if object with filters is undefined or not an object
   if (!filterObject || typeof filterObject !== "object") return "";
 
+  // Reuse the result for a filter object that was already mapped
+  const cachedFilterUrl = filterUrlCache.get(filterObject);
+  if (cachedFilterUrl !== undefined) return cachedFilterUrl;
+
+  const filterUrl = buildFilterUrl(filterObject);
+  filterUrlCache.set(filterObject, filterUrl);
+
+  return filterUrl;
+}
+
+/**
+ * Build the filter URL string for a filter object. Use `mapFilterObjectToUrl()`
+ * instead, which caches the result per filter object.
+ * @param filterObject Object with filters
+ * @returns URL string with filters
+ */
+function buildFilterUrl(filterObject: ImageFilterType): string {
   // Store final filter URL in variable
   let filterUrl: string = "";
 
@@ -602,5 +628,52 @@ export function collapseFilterAliases(
     ...rest,
     grayscale:
       filterObject.grayscale !== undefined ? filterObject.grayscale : greyscale,
+  };
+}
+
+/**
+ * Shared empty filter object, so images without any filter all hand the same
+ * identity to the mapper's cache instead of allocating a new object each render.
+ */
+const EMPTY_FILTERS: ImageFilterType = {};
+
+/**
+ * Check whether a filter object carries anything at all.
+ * @param filterObject Filter object to check
+ * @returns `true` when there is at least one key
+ */
+function hasFilters(filterObject: ImageFilterType | undefined): boolean {
+  if (!filterObject) return false;
+  for (const key in filterObject) {
+    if (Object.prototype.hasOwnProperty.call(filterObject, key)) return true;
+  }
+  return false;
+}
+
+/**
+ * Merge the global filters with the per-image filters, per-image winning.
+ *
+ * Avoids allocating a merged object when only one side (or neither) actually
+ * holds filters, which is the common case. That keeps the object identity
+ * stable across renders so the filter URL cache can hit, and it saves one
+ * allocation per image per render.
+ * @param globalFilters Filters from the global configuration
+ * @param imageFilters Filters from the `filter` prop
+ * @returns Filter object to build the URL from
+ */
+export function mergeFilters(
+  globalFilters: ImageFilterType | undefined,
+  imageFilters: ImageFilterType | undefined
+): ImageFilterType {
+  const hasGlobal = hasFilters(globalFilters);
+  const hasImage = hasFilters(imageFilters);
+
+  if (!hasGlobal && !hasImage) return EMPTY_FILTERS;
+  if (!hasGlobal) return collapseFilterAliases(imageFilters) as ImageFilterType;
+  if (!hasImage) return collapseFilterAliases(globalFilters) as ImageFilterType;
+
+  return {
+    ...collapseFilterAliases(globalFilters),
+    ...collapseFilterAliases(imageFilters),
   };
 }

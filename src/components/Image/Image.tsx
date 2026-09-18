@@ -4,9 +4,22 @@ import React, { useContext } from "react";
 import { ConfigurationContext } from "../ImageHandlerContext/context";
 import { ConfigurationContextType, ImageFilterType } from "../../types";
 import { checkFiletype, logOnce, prepareSrc } from "../../utils/general";
-import { collapseFilterAliases } from "../../utils/filter-mapper";
+import { mergeFilters } from "../../utils/filter-mapper";
 import { generateImgSrc } from "../../utils/generate-img-src";
 import { generateSrcSet } from "../../utils/generate-src-set";
+
+/**
+ * Filters of the blurred placeholder that progressive loading shows first.
+ *
+ * Hoisted out of the component so every image reuses the same object identity
+ * and the filter mapper's cache builds its URL segment only once per session.
+ */
+const PLACEHOLDER_FILTERS: ImageFilterType = {
+  blur: 5,
+  quality: 100,
+  stripExif: true, // Remove metadata for smaller filesize
+  stripIcc: true, // Remove metadata for smaller filesize
+};
 
 interface ImageComponentProps
   extends React.DetailedHTMLProps<
@@ -130,10 +143,10 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
     // Join the global filters with the user's filters (user's filters have
     // priority). The `greyscale` / `grayscale` alias is collapsed first, so a
     // per-image value overrides a global one across both spellings.
-    const joinedFilters: ImageFilterType = {
-      ...collapseFilterAliases(config.globalFilters),
-      ...collapseFilterAliases(filter),
-    };
+    const joinedFilters: ImageFilterType = mergeFilters(
+      config.globalFilters,
+      filter
+    );
 
     // Get src-set. An empty string would render as `srcSet=""`, so it is
     // normalized to `undefined` instead.
@@ -180,12 +193,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
         40,
         0,
         "cover",
-        {
-          blur: 5,
-          quality: 100,
-          stripExif: true, // Remove metadata for smaller filesize
-          stripIcc: true, // Remove metadata for smaller filesize
-        },
+        PLACEHOLDER_FILTERS,
         preparedSrc,
         config,
         false // These filters are added by the SDK, so do not warn the consumer about them
