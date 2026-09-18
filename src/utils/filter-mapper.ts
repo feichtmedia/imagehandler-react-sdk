@@ -408,6 +408,51 @@ export function mapFilterObjectToUrl(
       }
 
       //
+    } else if (filter === "convolution") {
+      //
+      // ----- Convolution
+      // Syntax: /filters:convolution(matrix_item;matrix_item;...,number_of_columns,should_normalize)
+      if (filterObject["convolution"]) {
+        const matrix = filterObject["convolution"].matrix;
+        const columns = filterObject["convolution"].columns;
+        const normalize = filterObject["convolution"].normalize || false;
+
+        // The matrix has to be a non-empty list of numbers
+        if (
+          !Array.isArray(matrix) ||
+          matrix.length === 0 ||
+          !matrix.every(isFiniteNumber)
+        ) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter '${filter}'. 'matrix' must be a non-empty array of numbers.`
+          );
+          return; // Next iteration
+        }
+
+        // The number of columns has to describe the matrix
+        if (!isFiniteNumber(columns) || columns < 1 || columns % 1 !== 0) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter '${filter}'. 'columns' must be a whole number of at least 1 but is ${columns}`
+          );
+          return; // Next iteration
+        }
+        if (matrix.length % columns !== 0) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter '${filter}'. The matrix has ${matrix.length} items, which is not divisible by the ${columns} columns.`
+          );
+          return; // Next iteration
+        }
+
+        // Append to URL
+        filterUrl = `${filterUrl}/filters:convolution(${matrix.join(
+          ";"
+        )},${columns},${normalize})`;
+      }
+
+      //
     } else if (filter === "customFilter") {
       //
       // ----- Custom Filter
@@ -491,6 +536,45 @@ function normalizeHexColor(hex: string, filterName: string): string | null {
   return normalized;
 }
 
+/**
+ * Function to map the `crop` filter to its URL path segment.
+ *
+ * Unlike the other filters, a crop is not a `filters:` segment but its own path
+ * segment in the form `leftxtop:rightxbottom`, which has to sit in front of the
+ * resolution. It is therefore built here but assembled in `generateImgSrc()`.
+ * @param filterObject Object with filters
+ * @returns URL path segment for the crop, or an empty string
+ */
+export function mapCropToUrl(filterObject: ImageFilterType | undefined): string {
+  if (!filterObject || typeof filterObject !== "object") return "";
+
+  const crop = filterObject.crop;
+  if (!crop) return "";
+
+  const { left, top, right, bottom } = crop;
+
+  // All four edges have to be usable numbers
+  if (![left, top, right, bottom].every(isFiniteNumber)) {
+    logOnce(
+      "error",
+      `ImageHandler: Failed appending filter 'crop'. 'left', 'top', 'right' and 'bottom' must all be numbers.`
+    );
+    return "";
+  }
+
+  // The crop window has to have a positive area inside the image
+  if (left < 0 || top < 0 || right <= left || bottom <= top) {
+    logOnce(
+      "error",
+      `ImageHandler: Failed appending filter 'crop'. The window must satisfy 0 <= left < right and 0 <= top < bottom but is ${left}x${top}:${right}x${bottom}`
+    );
+    return "";
+  }
+
+  return `/${Math.round(left)}x${Math.round(top)}:${Math.round(
+    right
+  )}x${Math.round(bottom)}`;
+}
 
 /**
  * Collapse the `greyscale` / `grayscale` alias onto the canonical `grayscale`

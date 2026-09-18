@@ -1,5 +1,5 @@
 import { ConfigurationContextType, ImageFilterType } from "../types";
-import { mapFilterObjectToUrl } from "./filter-mapper";
+import { mapCropToUrl, mapFilterObjectToUrl } from "./filter-mapper";
 import {
   createQueryParams,
   normalizeEndpointDomain,
@@ -59,6 +59,10 @@ export function generateImgSrc(
     // Map filters to URL string (pass global filters and user's filters as override)
     const filterUrl: string = mapFilterObjectToUrl(filterObject) || "";
 
+    // The crop is its own path segment and has to sit in front of the
+    // resolution, so it is not part of the `filters:` string
+    const crop: string = mapCropToUrl(filterObject);
+
     // Prepare resolution. Only added when at least one dimension is set.
     const resolution: string =
       preparedWidth > 0 || preparedHeight > 0
@@ -69,6 +73,6 @@ export function generateImgSrc(
     const fitIn: string = objectFit === "contain" ? "/fit-in" : "";
 
     // Return image src
-    return `${protocol}://${endpointDomain}${resolution}${fitIn}${filterUrl}${src}`;
+    return `${protocol}://${endpointDomain}${crop}${resolution}${fitIn}${filterUrl}${src}`;
   }
 }

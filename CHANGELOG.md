@@ -7,6 +7,12 @@ All notable changes to this project will be documented in this file.
 - Added `AGENTS.md` file with instructions for AI coding assistants.
 - Added `CLAUDE.md` for Claude Code which references to the `AGENTS.md` file.
 
+**New filters:**
+
+- Added the `convolution` filter (`{ matrix: number[], columns: number, normalize?: boolean }`), which maps to `/filters:convolution(1;2;1;2;4;2;1;2;1,3,false)/`. The matrix is validated to be a non-empty list of numbers whose length is divisible by `columns`. Not available in query-parameter mode.
+- Added the `crop` filter (`{ left, top, right, bottom }`), which maps to the `/10x10:100x100/` path segment. Unlike the other filters this is not a `filters:` segment, so it is assembled in `generateImgSrc()` and placed in front of the resolution, as the endpoint's URL format expects. The window is validated to satisfy `0 <= left < right` and `0 <= top < bottom`. Not available in query-parameter mode.
+- Added both filters to the example app, together with a case for the `greyscale` / `grayscale` alias.
+
 **Changed logging:**
 
 - Changed a filter that the active URL mode cannot express from `console.error` to `console.warn`. Dropping `blur` in query-parameter mode is a limitation of that mode, not a mistake by the consumer. A value the SDK genuinely cannot use — a `blur` of `500`, a malformed `rgb` array, a missing `endpointDomain` — stays a `console.error`.
