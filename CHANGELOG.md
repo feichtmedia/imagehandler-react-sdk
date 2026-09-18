@@ -14,6 +14,16 @@ This release only touches dependencies and tooling. The public API, the generate
 - Fixed `npm run build` failing on a fresh clone. The script started with `rm -r ./dist`, which errors when `dist/` does not exist yet, and it never does on a fresh clone because the directory is gitignored. It now uses `rm -rf ./dist`.
 - Removed the unused `@types/react-dom` development dependency.
 
+**Example app migrated from Create React App to Vite:**
+
+- Added `vite.config.ts`, replacing `craco.config.js`. It deduplicates React through `resolve.dedupe` and permits the dev server to read the symlinked SDK from the parent directory — the same two problems the CRACO configuration solved for webpack. The dev server still serves on `localhost:3000`.
+- Added `index.html` in the example app root, where Vite expects it, replacing `public/index.html` and its Create React App `%PUBLIC_URL%` placeholders.
+- Added `src/vite-env.d.ts` for the Vite client types.
+- Changed the example app's build setup from Create React App (`react-scripts` 5) with CRACO to Vite 8 with `@vitejs/plugin-react`. `react-scripts@5.0.1` requires `typescript: ^3.2.1 || ^4` and depends on `@testing-library/react@13`, which requires `react: ^18.0.0`; both conflict with the versions this repository uses and made a React 19 example app impossible.
+- Updated the example app to React 19.3.0, TypeScript 5.9.3 and a Vite-compatible `tsconfig.json`.
+- Updated the example app's `README.md` to document the Vite scripts instead of the Create React App ones, including the note that the SDK has to be built before starting the app.
+- Removed the Create React App scaffolding that no longer applies: `craco.config.js`, `src/react-app-env.d.ts` and the unused test stubs `src/App.test.tsx` and `src/setupTests.ts`, which referenced `@testing-library` and asserted on text the example app does not contain.
+
 ## [1.7.0] – 2025-09-13
 
 **Support for additional filters**
