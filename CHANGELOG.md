@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Added `AGENTS.md` file with instructions for AI coding assistants.
+- Added `CLAUDE.md` for Claude Code which references to the `AGENTS.md` file.
+
 **Dependency and toolchain maintenance:**
 
 This release only touches dependencies and tooling. The public API, the generated image request URLs and the `srcSet` values are unchanged.
