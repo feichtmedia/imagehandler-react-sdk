@@ -7,6 +7,13 @@ All notable changes to this project will be documented in this file.
 - Added `AGENTS.md` file with instructions for AI coding assistants.
 - Added `CLAUDE.md` for Claude Code which references to the `AGENTS.md` file.
 
+**Bug fixes in progressive lazy loading:**
+
+- Added a fallback in `addLazyLoading()` for browsers without `IntersectionObserver`. All matching images are loaded immediately instead of staying on the blurred placeholder forever.
+- Added a guard so `addLazyLoading()` and `removeLazyLoading()` do nothing when there is no `document`, rather than throwing during server-side rendering or in a test environment.
+- Fixed `addLazyLoading()` leaking the previous `IntersectionObserver` when it was called more than once, for example in React's StrictMode or on a route change. It now tears down the existing observer first.
+- Fixed `removeLazyLoading()` leaving elements observed. It queried the elements still carrying a `data-src` attribute and unobserved those, which missed every element that had already been swapped or removed from the DOM. It calls `disconnect()` now.
+
 **Dependency and toolchain maintenance:**
 
 This release only touches dependencies and tooling. The public API, the generated image request URLs and the `srcSet` values are unchanged.

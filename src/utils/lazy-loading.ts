@@ -28,20 +28,47 @@ const imgOptions: IntersectionObserverInit = {
 let imgObserver: IntersectionObserver | null = null;
 
 /**
+ * Check whether the functions can run at all.
+ *
+ * The helpers are called from the consumer's `useEffect`, but a consumer may
+ * also call them during server-side rendering or in a test environment without
+ * a DOM, where `document` does not exist.
+ * @returns `true` if a DOM is available
+ */
+function hasDocument(): boolean {
+  return typeof document !== "undefined";
+}
+
+/**
  * Attach the Intersection Observer to all image nodes on the page
  */
 function attachImageObserver(): void {
+  // No DOM, nothing to observe
+  if (!hasDocument()) return;
+
+  // Always tear down a previous observer first. Without this, calling
+  // `addLazyLoading()` twice — for example in React's StrictMode or on a route
+  // change — would leak the previous observer and leave it attached.
+  removeImageObserver();
+
   // Select all images
   const images = document.querySelectorAll(imageTargets);
 
+  // Fall back to loading every image immediately when the browser has no
+  // Intersection Observer, so the images never stay on the blurred placeholder
+  if (typeof IntersectionObserver === "undefined") {
+    images.forEach((image) => setSrc(image));
+    return;
+  }
+
   // Create image observer
-  imgObserver = new IntersectionObserver((entries, imgObserver) => {
+  imgObserver = new IntersectionObserver((entries, observer) => {
     entries.forEach((entry) => {
       if (!entry.isIntersecting) {
         return;
       } else {
         setSrc(entry.target); // Set `src` and `srcset`
-        imgObserver.unobserve(entry.target); // Unobserve target
+        observer.unobserve(entry.target); // Unobserve target
       }
     });
   }, imgOptions);
@@ -56,29 +83,29 @@ function attachImageObserver(): void {
  * Remove the Intersection Observer from all image nodes on the page
  */
 function removeImageObserver(): void {
-  // Select all images
-  const images = document.querySelectorAll(imageTargets);
-
-  // Remove observer from all images
-  images.forEach((image) => {
-    imgObserver?.unobserve(image);
-  });
+  // `disconnect()` also covers elements that are no longer in the DOM and
+  // elements whose data attributes were already swapped, which a query for the
+  // still-matching elements would miss
+  imgObserver?.disconnect();
+  imgObserver = null;
 }
 
 /**
  * Set image source values from data-set to attributes
  * @param target Target element to perform actions on
  */
-function setSrc(target: any): void {
+function setSrc(target: Element): void {
+  const imageElement = target as HTMLImageElement | HTMLSourceElement;
+
   // Get values from dataset
-  const src = target.dataset?.src;
-  const srcSet = target.dataset?.srcset;
+  const src = imageElement.dataset?.src;
+  const srcSet = imageElement.dataset?.srcset;
 
   // Set values to target
-  if (src) target.src = src;
-  if (srcSet) target.srcset = srcSet;
+  if (src) imageElement.src = src;
+  if (srcSet) imageElement.srcset = srcSet;
 
   // Remove values from dataset
-  if (src) target.removeAttribute("data-src");
-  if (srcSet) target.removeAttribute("data-srcset");
+  if (src) imageElement.removeAttribute("data-src");
+  if (srcSet) imageElement.removeAttribute("data-srcset");
 }
