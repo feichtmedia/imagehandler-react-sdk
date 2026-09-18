@@ -30,6 +30,7 @@ Notes:
 
 - Releases are published manually: bump the version in `package.json`, update `CHANGELOG.md`, build, then `npm publish`. There is no CI pipeline.
 - There are no test or lint commands — the repository has no test runner, ESLint or Prettier configuration. `npm run typecheck` (`tsc --noEmit`) is the only automated check available.
+- **`tsconfig.json` sets `"types": []` on purpose.** The SDK is browser-only and imports nothing from Node. Without it, `@types/node` contributes a `/// <reference lib="es2020" />` that silently widens the effective `lib` far past the declared ES2017, so ES2019+ APIs type-check fine and then throw in the browsers `target: es5` promises to support — which is exactly how an `Object.fromEntries()` call shipped in 1.7.0. Do not remove it, and do not add an ambient `@types` package to work around a type error.
 - The example app consumes the SDK through `"@feichtmedia/imagehandler-react-sdk": "file:.."`, so it resolves `dist/`. Build the SDK before starting the example app, otherwise changes will not be visible.
 - `cd example-app && npm run build` runs `tsc --noEmit` before `vite build`, so it type-checks the harness as well.
 
@@ -37,11 +38,11 @@ Notes:
 
 | Layer                | Technology                                                                                                                       |
 | -------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Language             | TypeScript 5.9 (`strict`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`), target ES5, `jsx: react`                 |
+| Language             | TypeScript 5.9 (`strict`, `noUnusedLocals`, `noUnusedParameters`, `noImplicitReturns`), target ES5, `lib` up to ES2017, `types: []`, `jsx: react` |
 | UI framework         | React 18.2 and newer, verified against React 19 — `react` is the single **peer dependency**, never bundled                       |
 | Runtime dependencies | None. The package ships with `devDependencies` and `peerDependencies` only                                                       |
 | Build                | `tsc` only (no bundler). Dual output: ESM → `dist/esm`, CommonJS → `dist/cjs`, type declarations alongside the ESM build         |
-| Image backend        | Caching (mostly CloudFront but also other caches) → API Gateway (requests) → Thumbor / sharp (optimization) → S3 (image storage) |
+| Image backend        | [Dynamic Image Transformation for Amazon CloudFront](https://docs.aws.amazon.com/solutions/latest/dynamic-image-transformation-for-amazon-cloudfront/use-filters.html) — CloudFront (caching) → API Gateway (requests) → Thumbor / sharp (optimization) → S3 (image storage). **That linked filter table is the source of truth for the path-mode filter names and syntax** — check it before adding or renaming a filter |
 | Media library        | FeichtMedia ImageManager, our DAM — holds the source images and the paths passed to `src`                                        |
 | Lazy loading         | Native `IntersectionObserver`, plus the browser's native `loading="lazy"` as the non-progressive fallback                        |
 | Example app          | Vite 8 with `@vitejs/plugin-react` and React 19. `resolve.dedupe` keeps React single-instance, `server.fs.allow` reaches the SDK |
@@ -83,9 +84,9 @@ The consumer wraps the tree in `<ImageHandlerContext config={…}>`. The provide
 
 ### Render path in `ImageHandler`
 
-1. Read the config. If it is missing or `endpointDomain` is empty, `console.error` and render `null` — the SDK never throws.
+1. Read the config. If it is missing or `endpointDomain` is falsy, `console.error` and render `null` — the SDK never throws. The same happens when `src` holds no usable path segment.
 2. Merge `config.defaultStyles` into the inline `style` object (`width: 100%`, `color: transparent`), with the consumer's `style` prop winning.
-3. `prepareSrc()` (`utils/general.ts`) normalizes the source path by re-joining its non-empty segments with a leading slash.
+3. `prepareSrc()` (`utils/general.ts`) normalizes the source path by re-joining its non-empty segments with a leading slash. It also drops the relative segments `.` and `..` and percent-encodes every character that would break the URL or the `srcSet` syntax — see [URL safety](#url-safety).
 4. **SVG pass-through**: if `optimizeSvg === false` and the extension is `svg`, return the image without dimensions or filters.
 5. **GIF pass-through**: same for `optimizeGif === false` and the `gif` extension.
 6. Merge `config.globalFilters` with the `filter` prop — the per-image prop wins per key.
@@ -104,15 +105,57 @@ The consumer wraps the tree in `<ImageHandlerContext config={…}>`. The provide
 - **Path mode (default)** produces Thumbor-style URLs: `{protocol}://{endpointDomain}/{width}x{height}[/fit-in]{filters}{src}`. `objectFit: "contain"` adds `/fit-in`; filters come from `mapFilterObjectToUrl()`. This mode supports the full `ImageFilterType`.
 - **Query mode** (`useQueryParams: true`) produces `{protocol}://{endpointDomain}{src}?{params}` via `createQueryParams()` in `utils/general.ts`, which sorts parameters alphabetically so the CDN cache key stays stable.
 
-`utils/generate-src-set.ts` walks `srcSetSizes`, skips every size larger than the `width` prop, appends an extra entry for the exact `width` when it is not already in the list, and emits `"{url} {size}w"` entries. Every entry is a full `generateImgSrc()` call with `height` forced to `0`.
+`utils/generate-src-set.ts` walks `srcSetSizes`, skips every size larger than the `width` prop as well as duplicate and unusable sizes, appends an extra entry for the exact `width` when it is not already in the list, and emits `"{url} {size}w"` entries. Every entry is a full `generateImgSrc()` call with `height` forced to `0`. All sizes run through `toDimension()` first, so the emitted widths are always non-negative integers.
 
 ### Filter mapping
 
-`utils/filter-mapper.ts` maps `ImageFilterType` to Thumbor filter segments (`/filters:blur(5)`) through one long `if/else if` chain keyed on the filter name. It validates ranges (`blur` and `quality` 0–100, `rotate` 0–360, `proportion` 0–1, `rgb` −255–255, `sharpen.amount` 0–10, `sharpen.radius` 0–2, `smartCrop` values ≥ 0) and, on an invalid value, logs a `console.error` and skips that one filter instead of throwing. `normalizeHexColor()` strips a leading `#` for `backgroundColor` and `fill`. `customFilter` is passed through verbatim (a leading slash is added if missing) and is the escape hatch for endpoint features the typed API does not cover.
+`utils/filter-mapper.ts` maps `ImageFilterType` to Thumbor filter segments (`/filters:blur(5)`) through one long `if/else if` chain keyed on the filter name. It validates ranges (`blur` and `quality` 0–100, `rotate` 0–360, `proportion` 0–1, `rgb` −255–255, `sharpen.amount` 0–10, `sharpen.radius` 0–2, `smartCrop` values ≥ 0) and, on an invalid value, logs a `console.error` and skips that one filter instead of throwing.
+
+Every numeric filter value is additionally checked with `isFiniteNumber()`, so a filter key that is present but `undefined` — which is what happens when the value comes from a variable — is skipped rather than written into the URL as `undefined`. `normalizeHexColor()` strips a leading `#` for `backgroundColor` and `fill` and rejects anything that is not a hex code or a plain keyword such as `auto`. `format` is checked against `ALLOWED_FORMATS`. The `watermark` key runs through `sanitizeFilterArgument()`. `customFilter` is passed through verbatim apart from whitespace and control characters (a leading slash is added if missing) and is the escape hatch for endpoint features the typed API does not cover.
+
+`flip` and `flop` exist in `ImageFilterType` but have **no path-mode mapping** — the endpoint's path filter list has no equivalent, so they only work in query-parameter mode and the mapper logs a `console.error` for them instead of dropping them silently. Do not invent segment names for them; check the endpoint's filter list first.
+
+`grayscale` and `greyscale` are the **same operation under two spellings**: the path filter is `grayscale`, the query parameter is `greyscale`. Both keys are accepted in both modes and collapse to a single filter segment. `collapseFilterAliases()` folds them onto the canonical `grayscale` *before* the global filters and the `filter` prop are merged in `mergeFilters()`, so a per-image value overrides a global one across spellings. Keep that symmetry if you touch either one.
+
+`crop` is the one filter that is **not** a `filters:` segment. It is the path segment `leftxtop:rightxbottom` and has to sit in front of the resolution, so `mapCropToUrl()` is called from `generateImgSrc()` rather than from the mapping chain.
+
+### URL safety
+
+The SDK writes three kinds of consumer input into a URL that the browser then requests: the `src` prop, the filter values and `endpointDomain`. A consuming project may fill any of them from content it does not fully control — a CMS field, a filename out of the DAM, a query parameter. Everything below is load-bearing; do not remove it while "simplifying" the URL builders.
+
+- **`prepareSrc()` escapes the `src`.** Whitespace is the critical character: a `srcSet` entry is `"{url} {descriptor}"`, so a space inside the URL ends the entry and turns the rest of the source into a second candidate that can point at any host. `?` and `#` would truncate the request path. `%` is deliberately **not** escaped, otherwise an already percent-encoded source would be encoded twice.
+- **`prepareSrc()` drops `.` and `..` segments** so a source cannot traverse out of its intended prefix.
+- **Filter values are validated before they reach the URL.** A filter argument sits inside `/filters:name(value)`, so an unchecked value containing `)` can close the filter and append arbitrary further segments. `backgroundColor`, `fill`, `format` and the `watermark` key are the free-form ones and each has its own check.
+- **`normalizeEndpointDomain()` strips a protocol, trailing slashes and whitespace** from the configured domain, so a slightly off config value cannot produce a malformed or misdirected URL.
+- **`useHttps` only downgrades on an explicit `false`.** The provider drops `undefined` values from the user config before merging, so a config assembled from an unset variable cannot silently turn every request into plain HTTP.
+
+There is no XSS surface here — the URL always starts with a literal `https://` or `http://` and React escapes attribute values — but a redirected image request is enough to leak a referrer or load third-party content, which is what these rules prevent.
+
+### Diagnostics
+
+Everything goes through `logOnce(level, message)` in `utils/general.ts`; no module calls `console.*` directly. Two rules:
+
+- **`error`** — a value the consumer supplied that the SDK cannot use: a `blur` of `500`, a malformed `rgb` array, a missing `endpointDomain`, an unusable `src`.
+- **`warn`** — a filter the active URL mode simply cannot express, which is a limitation of the mode rather than a mistake. Dropping `blur` under `useQueryParams: true` is the typical case.
+
+Each distinct message is logged **once per session**. Without that, a single wrong filter on a single image produces one message per `srcSet` entry per render. Messages embed their offending value, so a changed value still reports.
+
+### Performance
+
+The SDK runs on the client on every render of every image, so the URL builders are on a hot path. Four things keep it cheap; do not undo them without measuring:
+
+- **`mapFilterObjectToUrl()` caches per filter object** in a `WeakMap`. `generateSrcSet()` calls `generateImgSrc()` once per size with the same filter object, so the filter string is built once instead of up to eight times per image. **A filter object must therefore never be mutated after it was handed to the SDK.**
+- **`mergeFilters()` avoids allocating** when only one side has filters, which keeps the object identity stable across renders so the cache actually hits. Replacing it with a plain `{...global, ...filter}` spread silently costs about a third of the render time.
+- **The placeholder filter object is a module constant** (`PLACEHOLDER_FILTERS` in `Image.tsx`), not an inline literal, for the same reason.
+- **`normalizeEndpointDomain()` remembers its last result**, because it otherwise runs three regexes once per generated URL.
+
+Measured on 100 images with a seven-entry `srcSet` each, this is 22–33 % less time per render than 1.7.0. `React.memo` on `ImageHandler` was considered and skipped: `filter` and `style` are usually inline object literals, so a shallow prop comparison would fail every time and only add cost.
 
 ### Progressive lazy loading
 
 `utils/lazy-loading.ts` keeps a module-level singleton `IntersectionObserver` (`threshold: 0`, `rootMargin: 200px 0px`). The consumer calls `addLazyLoading()` from a `useEffect` after mount and `removeLazyLoading()` in the cleanup — see `example-app/src/Layout.tsx`. On intersection, `setSrc()` copies `data-src` / `data-srcset` onto `src` / `srcset`, removes the data attributes and unobserves the element. The query targets both `img` and `picture source` elements, so a consumer's own markup can opt into the same mechanism.
+
+Because the observer is a module singleton, `addLazyLoading()` tears down an existing observer with `disconnect()` before creating a new one — calling it twice (StrictMode, a route change) otherwise leaks the previous one. `removeLazyLoading()` also uses `disconnect()`; unobserving the elements a query still matches misses everything that was already swapped or removed from the DOM. Both functions no-op when there is no `document`, and when the browser has no `IntersectionObserver` all matching images are loaded immediately so they never stay on the placeholder.
 
 This split — the component renders the data attributes, the consumer starts the observer — exists because the observer must run after the DOM is populated and works across Next.js and Gatsby hydration.
 
@@ -210,4 +253,5 @@ Be aware that the existing history diverges from the rules above: the last git t
 - **Keep the package free of runtime dependencies.** The SDK ships with `devDependencies` and the `react` `peerDependency` only. Do not introduce a runtime dependency; solve the problem with the platform APIs already in use (`URLSearchParams`, `IntersectionObserver`) or ask before adding one.
 - **Do not narrow the `react` peer range.** It is `>=18.2.0`, deliberately unbounded upwards. Pinning it to something like `^18.2.0 || ^19.0.0` looks tidier but would produce peer-dependency errors the day the next React major ships, which is the opposite of what is wanted. `react-dom` is intentionally *not* a peer dependency, because the SDK never imports it.
 - **Do not upgrade to TypeScript 7 without a major release.** TS 7 removed `target: ES5` and `moduleResolution: node10`, both of which `tsconfig.json` depends on. Moving off them changes the emitted output's browser support, so it is a consumer-visible break. Stay on TypeScript 5.9.x; the details are in `TODO.md`.
-- **Adding or changing an image filter touches four places.** Update (1) `ImageFilterType` in `src/types.ts`, (2) the mapping chain in `src/utils/filter-mapper.ts` including any range validation, (3) `createQueryParams()` in `src/utils/general.ts` if the filter is also supported in query-parameter mode — and state explicitly in the changelog when it is not, and (4) `example-app/src/App.tsx` with a case that exercises the new filter, since that is the only way to verify the generated URL.
+- **Never write an unvalidated value straight into the URL.** `src`, the filter values and `endpointDomain` all come from the consuming project and may originate from content it does not control. See [URL safety](#url-safety) for what each of them is checked against, and keep numeric filter values behind `isFiniteNumber()` so a present-but-`undefined` key cannot become the literal string `undefined` in a URL.
+- **Adding or changing an image filter touches four places.** Update (1) `ImageFilterType` in `src/types.ts`, (2) the mapping chain in `src/utils/filter-mapper.ts` including range validation and, for a free-form string value, an allow-list or an escape through `sanitizeFilterArgument()`, (3) `createQueryParams()` in `src/utils/general.ts` if the filter is also supported in query-parameter mode — and state explicitly in the changelog when it is not, and (4) `example-app/src/App.tsx` with a case that exercises the new filter, since that is the only way to verify the generated URL.
