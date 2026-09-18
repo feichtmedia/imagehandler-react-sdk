@@ -1,6 +1,10 @@
 import { ConfigurationContextType, ImageFilterType } from "../types";
 import { mapFilterObjectToUrl } from "./filter-mapper";
-import { createQueryParams } from "./general";
+import {
+  createQueryParams,
+  normalizeEndpointDomain,
+  toDimension,
+} from "./general";
 
 /**
  * Function to generate a image request URL out of multiple informations.
@@ -10,6 +14,7 @@ import { createQueryParams } from "./general";
  * @param filterObject Filter object from the `Image` component props or global config
  * @param src Prepared image source from `prepareSrc()`
  * @param config Config object from the global context
+ * @param warnUnsupportedFilters Whether to warn about filters the active mode cannot express. Disabled for the filters the SDK adds itself, such as the ones of the progressive placeholder
  * @returns Image request URL
  */
 export function generateImgSrc(
@@ -18,25 +23,34 @@ export function generateImgSrc(
   objectFit: "cover" | "contain" = "cover",
   filterObject: ImageFilterType = {},
   src: string,
-  config: ConfigurationContextType
+  config: ConfigurationContextType,
+  warnUnsupportedFilters: boolean = true
 ): string {
+  // Prepare the parts of the URL that both modes share.
+  // `useHttps` only downgrades to plain HTTP when it is explicitly `false`, so
+  // an accidental `undefined` cannot silently produce an insecure request.
+  const protocol: string = config.useHttps === false ? "http" : "https";
+  const endpointDomain: string = normalizeEndpointDomain(config.endpointDomain);
+
+  // Normalize the dimensions to non-negative integers
+  const preparedWidth: number = toDimension(width);
+  const preparedHeight: number = toDimension(height);
+
   // Check if a URL using query parameters or thumbor-like URL path segments should be generated
   if (config.useQueryParams === true) {
     // ----- Create URL using query parameters
 
     // Create query params string
     const queryParams: string = createQueryParams(
-      Number(width),
-      Number(height),
+      preparedWidth,
+      preparedHeight,
       objectFit,
-      filterObject
+      filterObject,
+      warnUnsupportedFilters
     );
 
-    // Prepare other parts of the URL
-    const protocol: string = config.useHttps ? "https" : "http";
-
     // Return image src
-    return `${protocol}://${config.endpointDomain}${src}${
+    return `${protocol}://${endpointDomain}${src}${
       queryParams ? `?${queryParams}` : ""
     }`;
   } else {
@@ -45,23 +59,16 @@ export function generateImgSrc(
     // Map filters to URL string (pass global filters and user's filters as override)
     const filterUrl: string = mapFilterObjectToUrl(filterObject) || "";
 
-    // Prepare resolution
-    let resolution: string = "";
-    if (width || height) {
-      // Prepare values to have a min. value of 0
-      const w = parseInt(width.toString()) > 0 ? width : 0;
-      const h = parseInt(height.toString()) > 0 ? height : 0;
-      // Check if at least one value is greather than 0
-      if (w !== 0 || h !== 0) {
-        resolution = `/${w.toString() || "0"}x${h.toString() || "0"}`;
-      }
-    }
+    // Prepare resolution. Only added when at least one dimension is set.
+    const resolution: string =
+      preparedWidth > 0 || preparedHeight > 0
+        ? `/${preparedWidth}x${preparedHeight}`
+        : "";
 
-    // Prepare other parts of the URL
-    const protocol: string = config.useHttps ? "https" : "http";
+    // Prepare the remaining part of the URL
     const fitIn: string = objectFit === "contain" ? "/fit-in" : "";
 
     // Return image src
-    return `${protocol}://${config.endpointDomain}${resolution}${fitIn}${filterUrl}${src}`;
+    return `${protocol}://${endpointDomain}${resolution}${fitIn}${filterUrl}${src}`;
   }
 }

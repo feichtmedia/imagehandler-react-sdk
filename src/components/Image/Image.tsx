@@ -3,7 +3,8 @@
 import React, { useContext } from "react";
 import { ConfigurationContext } from "../ImageHandlerContext/context";
 import { ConfigurationContextType, ImageFilterType } from "../../types";
-import { checkFiletype, prepareSrc } from "../../utils/general";
+import { checkFiletype, logOnce, prepareSrc } from "../../utils/general";
+import { collapseFilterAliases } from "../../utils/filter-mapper";
 import { generateImgSrc } from "../../utils/generate-img-src";
 import { generateSrcSet } from "../../utils/generate-src-set";
 
@@ -45,10 +46,24 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
     // Use global configuration
     const config: ConfigurationContextType = useContext(ConfigurationContext);
 
-    // Fallback if config context is missing
-    if (!config || config.endpointDomain === "") {
-      console.error(
-        `ImageHandler: Please make sure a configuration context is provided and the ImageHandleer component is used inside a configuration context.`
+    // Fallback if config context is missing or has no endpoint domain
+    if (!config || !config.endpointDomain) {
+      logOnce(
+        "error",
+        `ImageHandler: Please make sure a configuration context is provided and the ImageHandler component is used inside a configuration context.`
+      );
+      return null;
+    }
+
+    // Prepare src
+    const preparedSrc: string = prepareSrc(src);
+
+    // Fallback if the src is missing or contains no usable path segment.
+    // Without this the component would request the bare endpoint domain.
+    if (preparedSrc === "") {
+      logOnce(
+        "error",
+        `ImageHandler: Failed rendering the image. The 'src' prop must be a non-empty relative image path.`
       );
       return null;
     }
@@ -62,12 +77,9 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       ...props.style,
     };
 
-    // Prepare src
-    const preparedSrc: string = prepareSrc(src);
-
     // If SVGs should not be optimized by config,
     // check if the image is an SVG and if so, return it without optimization
-    if (config.optimizeSvg === false && checkFiletype(preparedSrc, "svg")) {
+    if (config.optimizeSvg === false && checkFiletype(src, "svg")) {
       const svgImageRequest = generateImgSrc(
         undefined,
         undefined,
@@ -92,7 +104,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
 
     // If GIFs should not be optimized by config,
     // check if the image is an GIF and if so, return it without optimization
-    if (config.optimizeGif === false && checkFiletype(preparedSrc, "gif")) {
+    if (config.optimizeGif === false && checkFiletype(src, "gif")) {
       const gifImageRequest = generateImgSrc(
         undefined,
         undefined,
@@ -115,14 +127,17 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       );
     }
 
-    // Join the global filters with the user's filters (user's filters have priority)
+    // Join the global filters with the user's filters (user's filters have
+    // priority). The `greyscale` / `grayscale` alias is collapsed first, so a
+    // per-image value overrides a global one across both spellings.
     const joinedFilters: ImageFilterType = {
-      ...config.globalFilters,
-      ...filter,
+      ...collapseFilterAliases(config.globalFilters),
+      ...collapseFilterAliases(filter),
     };
 
-    // Get src-set
-    const srcSet: string | undefined = hasSrcSet
+    // Get src-set. An empty string would render as `srcSet=""`, so it is
+    // normalized to `undefined` instead.
+    const generatedSrcSet: string = hasSrcSet
       ? generateSrcSet(
           srcSetSizes || config.srcSetSizes,
           width,
@@ -131,7 +146,8 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
           preparedSrc,
           config
         )
-      : undefined;
+      : "";
+    const srcSet: string | undefined = generatedSrcSet || undefined;
 
     // Get default fallback image
     const defaultImage: string = generateImgSrc(
@@ -158,22 +174,23 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
       );
     }
 
-    // Get progressive blur image
-    const blurImage: string = generateImgSrc(
-      40,
-      0,
-      "cover",
-      {
-        blur: 5,
-        quality: 100,
-        stripExif: true, // Remove metadata for smaller filesize
-        stripIcc: true, // Remove metadata for smaller filesize
-      },
-      preparedSrc,
-      config
-    );
-
     if (config.progressiveImageLoading) {
+      // Get progressive blur image
+      const blurImage: string = generateImgSrc(
+        40,
+        0,
+        "cover",
+        {
+          blur: 5,
+          quality: 100,
+          stripExif: true, // Remove metadata for smaller filesize
+          stripIcc: true, // Remove metadata for smaller filesize
+        },
+        preparedSrc,
+        config,
+        false // These filters are added by the SDK, so do not warn the consumer about them
+      );
+
       // Image with progressive image loading
       return (
         <img
@@ -205,5 +222,7 @@ const ImageComponent = React.forwardRef<HTMLImageElement, ImageComponentProps>(
     }
   }
 );
+
+ImageComponent.displayName = "ImageHandler";
 
 export default ImageComponent;
