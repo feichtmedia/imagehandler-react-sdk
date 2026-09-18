@@ -243,7 +243,7 @@ We do use multiple branches for development.
 - `dev` is the development branch. All commits to `dev` must follow the Conventional Commits specification, but do not need to be tagged with a version number. This branch is used for development and testing of new features before they are merged into `master`. Merges happen via pull requests, which must be approved by the code owner.
 - for larger fixes or features, we use feature branches. Feature branches are created from the latest `master` branch and are used to develop new features or fix bugs. To release, those branches get merged into `master` usind a PR. Afterwards, those branches are deleted. Feature branches must also follow the Conventional Commits specification.
 
-**Current state of this repository:** only `master` exists and is actively used. There is no `dev` branch — release commits land directly on `master`. Create a feature branch off `master` for larger work and merge it back via PR.
+**Current state of this repository:** `master`, `dev` and feature branches all exist on `origin`. `dev` is the active development branch and is where ongoing work lands — commit there, keep every entry under the `[Unreleased]` changelog header and do not bump the version. `master` only moves through a reviewed pull request from `dev` or from a feature branch, and that is where the release commit and the version tag belong.
 
 Be aware that the existing history diverges from the rules above: the last git tag is `v1.2.0`, and release commits since then use the bare version number as the commit subject instead of a Conventional Commits message. Follow the conventions above for new work rather than copying the existing history.
 
