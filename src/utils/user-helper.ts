@@ -5,7 +5,7 @@
 import { useContext } from "react";
 import { ConfigurationContext } from "../components/ImageHandlerContext/context";
 import { ConfigurationContextType, ImageFilterType } from "../types";
-import { prepareSrc } from "./general";
+import { logOnce, prepareSrc } from "./general";
 import { generateImgSrc } from "./generate-img-src";
 import { generateSrcSet } from "./generate-src-set";
 
@@ -29,9 +29,10 @@ export function getImgSrc(
   const configContext: ConfigurationContextType | undefined =
     useContext(ConfigurationContext);
 
-  // Fallback if config context is missing
-  if (!configContext || configContext.endpointDomain === "") {
-    console.error(
+  // Fallback if config context is missing or has no endpoint domain
+  if (!configContext || !configContext.endpointDomain) {
+    logOnce(
+      "error",
       `ImageHandler: Failed generating a image src. Please make sure a configuration context is provided and the function is used inside a configuration context.`
     );
     return "";
@@ -39,6 +40,15 @@ export function getImgSrc(
 
   // Prepeare image src string
   const preparedImageSrc: string = prepareSrc(src);
+
+  // Fallback if the src contains no usable path segment
+  if (preparedImageSrc === "") {
+    logOnce(
+      "error",
+      `ImageHandler: Failed generating a image src. The 'src' argument must be a non-empty relative image path.`
+    );
+    return "";
+  }
 
   // Call main function to generate a image src
   const imageSrc: string = generateImgSrc(
@@ -60,7 +70,7 @@ export function getImgSrc(
  * @param maxImageWidth Max. image width
  * @param filter Object of filters that should be applied
  * @param objectFit Fill mode of the original image in the optimized image's container size
- * @param sizes Array of sizes to generate the src-set for
+ * @param sizes Array of sizes to generate the src-set for. Falls back to `srcSetSizes` from the global config
  * @returns Image request src-set
  */
 export function getImgSrcSet(
@@ -68,15 +78,16 @@ export function getImgSrcSet(
   maxImageWidth: number = 0,
   filter: ImageFilterType | undefined = undefined,
   objectFit: "cover" | "contain" = "cover",
-  sizes: number[] | undefined = [480, 768, 992, 1280, 1920, 2048, 3840]
+  sizes: number[] | undefined = undefined
 ): string {
   // Get global config context
   const configContext: ConfigurationContextType | undefined =
     useContext(ConfigurationContext);
 
-  // Fallback if config context is missing
-  if (!configContext || configContext.endpointDomain === "") {
-    console.error(
+  // Fallback if config context is missing or has no endpoint domain
+  if (!configContext || !configContext.endpointDomain) {
+    logOnce(
+      "error",
       `ImageHandler: Failed generating a image src-set. Please make sure a configuration context is provided and the function is used inside a configuration context.`
     );
     return "";
@@ -84,6 +95,15 @@ export function getImgSrcSet(
 
   // Prepeare image src string
   const preparedImageSrc: string = prepareSrc(src);
+
+  // Fallback if the src contains no usable path segment
+  if (preparedImageSrc === "") {
+    logOnce(
+      "error",
+      `ImageHandler: Failed generating a image src-set. The 'src' argument must be a non-empty relative image path.`
+    );
+    return "";
+  }
 
   // Call main function to generate a src set
   const imageSrcSet: string = generateSrcSet(

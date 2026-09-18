@@ -138,6 +138,72 @@ const App: React.FunctionComponent<AppProps> = () => {
 
         <Spacer height="100vh" />
 
+        <h2>Convolution Example</h2>
+        <p>
+          3x3 sharpen matrix. Expected filter segment:{" "}
+          <code>/filters:convolution(1;2;1;2;4;2;1;2;1,3,false)/</code>
+        </p>
+        <ImageHandler
+          alt="Convolution"
+          title="Convolution"
+          src="/99999/99999-12-20201021_luca-bravo-zAjdgNXsMeg-unsplash.jpg"
+          width={1280}
+          filter={{
+            convolution: {
+              matrix: [1, 2, 1, 2, 4, 2, 1, 2, 1],
+              columns: 3,
+            },
+          }}
+          hasSrcSet={false}
+          lazyLoading={false}
+        />
+
+        <Spacer height="100vh" />
+
+        <h2>Crop Example</h2>
+        <p>
+          The crop is its own path segment in front of the resolution. Expected
+          URL shape: <code>/200x100:1400x900/1280x0/…</code>
+        </p>
+        <ImageHandler
+          alt="Crop"
+          title="Crop"
+          src="/99999/99999-12-20201021_luca-bravo-zAjdgNXsMeg-unsplash.jpg"
+          width={1280}
+          filter={{
+            crop: { left: 200, top: 100, right: 1400, bottom: 900 },
+          }}
+          hasSrcSet={false}
+          lazyLoading={false}
+        />
+
+        <Spacer height="100vh" />
+
+        <h2>Greyscale / Grayscale alias</h2>
+        <p>
+          Both spellings map to <code>/filters:grayscale()</code> exactly once.
+        </p>
+        <ImageHandler
+          alt="Greyscale spelling"
+          title="Greyscale spelling"
+          src="/99999/20201222-15-blog-dark-mode_titelbild.jpg"
+          width={640}
+          filter={{ greyscale: true }}
+          hasSrcSet={false}
+          lazyLoading={false}
+        />
+        <ImageHandler
+          alt="Grayscale spelling"
+          title="Grayscale spelling"
+          src="/99999/20201222-15-blog-dark-mode_titelbild.jpg"
+          width={640}
+          filter={{ grayscale: true }}
+          hasSrcSet={false}
+          lazyLoading={false}
+        />
+
+        <Spacer height="100vh" />
+
         <h2>Smart Crop Example</h2>
         <ImageHandler
           alt="Smart Crop"

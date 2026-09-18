@@ -1,4 +1,66 @@
 import { ImageFilterType } from "../types";
+import { logOnce } from "./general";
+
+/**
+ * Allowed values for the `format` filter. A value outside of this list is
+ * rejected instead of being written into the URL, because the filter argument
+ * is otherwise a free-form string that a consumer can fill from user data.
+ */
+const ALLOWED_FORMATS = [
+  "gif",
+  "jpeg",
+  "jpg",
+  "png",
+  "avif",
+  "webp",
+  "tiff",
+  "raw",
+  "heif",
+];
+
+/**
+ * Filters that only exist in query-parameter mode.
+ *
+ * The endpoint's path-mode filter list has no equivalent for `flip` and
+ * `flop`, so they are listed here to get a warning instead of an image that
+ * silently ignores them. `greyscale` is *not* in this list: it is the
+ * query-mode spelling of the path-mode `grayscale` filter and is mapped.
+ */
+const QUERY_PARAM_ONLY_FILTERS = ["flip", "flop"];
+
+/**
+ * Check that a value is a usable, finite number.
+ * @param value Value to check
+ * @returns `true` if the value is a finite number
+ */
+function isFiniteNumber(value: unknown): value is number {
+  return typeof value === "number" && isFinite(value);
+}
+
+/**
+ * Cache of already mapped filter objects.
+ *
+ * `generateSrcSet()` calls `generateImgSrc()` once per `srcSet` size with the
+ * very same filter object, so without this the identical filter string would be
+ * rebuilt up to eight times per image. Keyed on object identity, which React
+ * props give us for free; a filter object must not be mutated after it was
+ * passed to the SDK.
+ */
+const filterUrlCache = new WeakMap<object, string>();
+
+/**
+ * Escape the characters that would break out of a filter argument list or
+ * split a `srcSet` entry.
+ * @param value Filter argument to escape
+ * @returns Escaped filter argument
+ */
+function sanitizeFilterArgument(value: string): string {
+  return value.replace(/[\s\u0000-\u001f\u007f-\u009f,()]/g, (character) =>
+    encodeURIComponent(character) === character
+      ? `%${character.charCodeAt(0).toString(16).toUpperCase().padStart(2, "0")}`
+      : encodeURIComponent(character)
+  );
+}
 
 /**
  * Function to map filter information and settings to a string for the image request URL.
@@ -8,9 +70,26 @@ import { ImageFilterType } from "../types";
 export function mapFilterObjectToUrl(
   filterObject: ImageFilterType | undefined
 ): string {
-  // Fallback if object with filters is undefined
-  if (!filterObject) return "";
+  // Fallback if object with filters is undefined or not an object
+  if (!filterObject || typeof filterObject !== "object") return "";
 
+  // Reuse the result for a filter object that was already mapped
+  const cachedFilterUrl = filterUrlCache.get(filterObject);
+  if (cachedFilterUrl !== undefined) return cachedFilterUrl;
+
+  const filterUrl = buildFilterUrl(filterObject);
+  filterUrlCache.set(filterObject, filterUrl);
+
+  return filterUrl;
+}
+
+/**
+ * Build the filter URL string for a filter object. Use `mapFilterObjectToUrl()`
+ * instead, which caches the result per filter object.
+ * @param filterObject Object with filters
+ * @returns URL string with filters
+ */
+function buildFilterUrl(filterObject: ImageFilterType): string {
   // Store final filter URL in variable
   let filterUrl: string = "";
 
@@ -35,7 +114,18 @@ export function mapFilterObjectToUrl(
     } else if (filter === "format" && filterObject[filter]) {
       //
       // ----- Format
-      filterUrl = `${filterUrl}/filters:format(${filterObject[filter]})`;
+      // Reject anything that is not a known format
+      const format = String(filterObject[filter]).toLowerCase();
+      if (ALLOWED_FORMATS.indexOf(format) < 0) {
+        logOnce(
+          "error",
+          `ImageHandler: Failed appending filter '${filter}'. The value must be one of '${ALLOWED_FORMATS.join(
+            "', '"
+          )}' but is ${filterObject[filter]}`
+        );
+        return; // Next iteration
+      }
+      filterUrl = `${filterUrl}/filters:format(${format})`;
 
       //
     } else if (
@@ -45,13 +135,14 @@ export function mapFilterObjectToUrl(
     ) {
       //
       // ----- Proportion
-      // Check if the value is between 0 and 1
+      // Check if the value is a number between 0 and 1
       if (
+        !isFiniteNumber(filterObject[filter]) ||
         filterObject[filter] < 0 ||
-        filterObject[filter] > 1 ||
-        isNaN(filterObject[filter])
+        filterObject[filter] > 1
       ) {
-        console.error(
+        logOnce(
+          "error",
           `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 1 but is ${filterObject[filter]}`
         );
         return; // Next iteration
@@ -62,9 +153,9 @@ export function mapFilterObjectToUrl(
     } else if (filter === "backgroundColor" && filterObject[filter]) {
       //
       // ----- Background Color
-      filterUrl = `${filterUrl}/filters:background_color(${normalizeHexColor(
-        filterObject[filter]
-      )})`;
+      const backgroundColor = normalizeHexColor(filterObject[filter], filter);
+      if (backgroundColor === null) return; // Next iteration
+      filterUrl = `${filterUrl}/filters:background_color(${backgroundColor})`;
 
       //
     } else if (filter === "blur") {
@@ -72,8 +163,13 @@ export function mapFilterObjectToUrl(
       // ----- Blur
       // Check for correct value between 0 and 100
       if (filterObject["blur"]) {
-        if (filterObject["blur"] < 0 || filterObject["blur"] > 100) {
-          console.error(
+        if (
+          !isFiniteNumber(filterObject["blur"]) ||
+          filterObject["blur"] < 0 ||
+          filterObject["blur"] > 100
+        ) {
+          logOnce(
+            "error",
             `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 100 but is ${filterObject[filter]}`
           );
           return; // Next iteration
@@ -88,9 +184,9 @@ export function mapFilterObjectToUrl(
     } else if (filter === "fill" && filterObject[filter]) {
       //
       // ----- Fill Color
-      filterUrl = `${filterUrl}/filters:fill(${normalizeHexColor(
-        filterObject[filter]
-      )})`;
+      const fillColor = normalizeHexColor(filterObject[filter], filter);
+      if (fillColor === null) return; // Next iteration
+      filterUrl = `${filterUrl}/filters:fill(${fillColor})`;
 
       //
     } else if (filter === "equalize" && filterObject[filter] === true) {
@@ -111,10 +207,19 @@ export function mapFilterObjectToUrl(
       filterUrl = `${filterUrl}/filters:no_upscale()`;
 
       //
-    } else if (filter === "grayscale" && filterObject[filter] === true) {
+    } else if (
+      (filter === "grayscale" || filter === "greyscale") &&
+      filterObject[filter] === true
+    ) {
       //
       // ----- Grayscale
-      filterUrl = `${filterUrl}/filters:grayscale()`;
+      // The endpoint's path-mode filter is spelled `grayscale`, while the
+      // query-parameter mode uses sharp's `greyscale`. Both name the same
+      // operation, so either spelling maps here — but only once, in case a
+      // consumer sets both.
+      if (filterUrl.indexOf("/filters:grayscale()") < 0) {
+        filterUrl = `${filterUrl}/filters:grayscale()`;
+      }
 
       //
     } else if (filter === "stripExif" && filterObject[filter] === true) {
@@ -135,17 +240,20 @@ export function mapFilterObjectToUrl(
       filterUrl = `${filterUrl}/filters:stretch()`;
 
       //
-    } else if (filter === "quality") {
+    } else if (filter === "quality" && filterObject[filter] !== undefined) {
       //
       // ----- Quality
       // Check for correct value between 0 and 100
-      if (filterObject["quality"]) {
-        if (filterObject["quality"] < 0 || filterObject["quality"] > 100) {
-          console.error(
-            `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 100 but is ${filterObject[filter]}`
-          );
-          return; // Next iteration
-        }
+      if (
+        !isFiniteNumber(filterObject["quality"]) ||
+        filterObject["quality"] < 0 ||
+        filterObject["quality"] > 100
+      ) {
+        logOnce(
+          "error",
+          `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 100 but is ${filterObject[filter]}`
+        );
+        return; // Next iteration
       }
       // Append to URL
       filterUrl = `${filterUrl}/filters:quality(${filterObject[
@@ -157,39 +265,46 @@ export function mapFilterObjectToUrl(
       //
       // ----- RGB
       if (filterObject["rgb"]) {
-        // Check for correct value between 0 and 255
-        let rgbValuesCorrect = true;
-        filterObject["rgb"].forEach((val) => {
-          if (val > 255 || val < -255) {
-            console.error(
-              `ImageHandler: Failed appending filter 'rgb'. All values must be between -255 and 255 but one is not in this range.`
-            );
-            rgbValuesCorrect = false;
-          }
-        });
+        // Check that all three values exist and are between -255 and 255
+        const rgbValues = filterObject["rgb"];
+        const rgbValuesCorrect =
+          Array.isArray(rgbValues) &&
+          rgbValues.length === 3 &&
+          rgbValues.every(
+            (val) => isFiniteNumber(val) && val <= 255 && val >= -255
+          );
 
         // Next iteration
-        if (!rgbValuesCorrect) return;
+        if (!rgbValuesCorrect) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter 'rgb'. It must be an array of exactly three numbers between -255 and 255.`
+          );
+          return;
+        }
 
         // Append to URL
-        const r = filterObject["rgb"][0].toString();
-        const g = filterObject["rgb"][1].toString();
-        const b = filterObject["rgb"][2].toString();
+        const r = rgbValues[0].toString();
+        const g = rgbValues[1].toString();
+        const b = rgbValues[2].toString();
         filterUrl = `${filterUrl}/filters:rgb(${r},${g},${b})`;
       }
 
       //
-    } else if (filter === "rotate") {
+    } else if (filter === "rotate" && filterObject[filter] !== undefined) {
       //
       // ----- Rotate
       // Check for correct value between 0 and 360
-      if (filterObject["rotate"]) {
-        if (filterObject["rotate"] < 0 || filterObject["rotate"] > 360) {
-          console.error(
-            `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 360 but is ${filterObject[filter]}`
-          );
-          return; // Next iteration
-        }
+      if (
+        !isFiniteNumber(filterObject["rotate"]) ||
+        filterObject["rotate"] < 0 ||
+        filterObject["rotate"] > 360
+      ) {
+        logOnce(
+          "error",
+          `ImageHandler: Failed appending filter '${filter}'. The value must be between 0 and 360 but is ${filterObject[filter]}`
+        );
+        return; // Next iteration
       }
       // Append to URL
       filterUrl = `${filterUrl}/filters:rotate(${filterObject[
@@ -207,15 +322,25 @@ export function mapFilterObjectToUrl(
         const sharpenLuminance = filterObject["sharpen"].luminanceOnly || false;
 
         // Check for correct values
-        if (sharpenAmount < 0 || sharpenAmount > 10) {
-          console.error(
+        if (
+          !isFiniteNumber(sharpenAmount) ||
+          sharpenAmount < 0 ||
+          sharpenAmount > 10
+        ) {
+          logOnce(
+            "error",
             `ImageHandler: Failed appending 'amount' for filter 'sharpen'. The first value must be between 0 and 10 but is ${sharpenAmount}`
           );
           return; // Next iteration
         }
-        if (sharpenRadius < 0 || sharpenRadius > 2) {
-          console.error(
-            `ImageHandler: Failed appending 'radius' for filter 'sharpen'. The second value must be between 0 and 10 but is ${sharpenRadius}`
+        if (
+          !isFiniteNumber(sharpenRadius) ||
+          sharpenRadius < 0 ||
+          sharpenRadius > 2
+        ) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending 'radius' for filter 'sharpen'. The second value must be between 0 and 2 but is ${sharpenRadius}`
           );
           return; // Next iteration
         }
@@ -236,25 +361,36 @@ export function mapFilterObjectToUrl(
         filterObject["watermark"].y !== undefined
       ) {
         // Syntax: /filters:watermark(bucket,key,x,y,alpha[,w_ratio[,h_ratio]])
+        const watermark = filterObject["watermark"];
 
-        // Prepare the watermark key by removing the leading slash (if there is one)
-        const watermarkKey = filterObject["watermark"].key.replace(/^\//, "");
+        // All positions and ratios have to be numbers, otherwise the filter
+        // would be written as `watermark(...,undefined,...)`
+        const numericValues = [watermark.x, watermark.y, watermark.alpha]
+          .concat([watermark.wRatio, watermark.hRatio])
+          .filter((value) => value !== undefined);
+        if (!numericValues.every(isFiniteNumber)) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter 'watermark'. 'x', 'y', 'alpha', 'wRatio' and 'hRatio' must be numbers.`
+          );
+          return; // Next iteration
+        }
+
+        // Prepare the watermark key by removing the leading slash (if there is
+        // one) and escaping the characters that would end the argument list
+        const watermarkKey = sanitizeFilterArgument(
+          String(watermark.key).replace(/^\//, "")
+        );
 
         // Define the values
         const watermarkFilterValues = [
           "feichtmedia-imagemanager", // bucket
           watermarkKey, // key
-          filterObject["watermark"].x, // x position
-          filterObject["watermark"].y, // y position
-          filterObject["watermark"].alpha !== undefined
-            ? filterObject["watermark"].alpha
-            : 0, // alpha (opacity)
-          filterObject["watermark"].wRatio !== undefined
-            ? filterObject["watermark"].wRatio
-            : null, // w_ratio (width ratio)
-          filterObject["watermark"].hRatio !== undefined
-            ? filterObject["watermark"].hRatio
-            : null, // h_ratio (height ratio)
+          watermark.x, // x position
+          watermark.y, // y position
+          watermark.alpha !== undefined ? watermark.alpha : 0, // alpha (opacity)
+          watermark.wRatio !== undefined ? watermark.wRatio : null, // w_ratio (width ratio)
+          watermark.hRatio !== undefined ? watermark.hRatio : null, // h_ratio (height ratio)
         ];
 
         // Append to URL
@@ -274,11 +410,14 @@ export function mapFilterObjectToUrl(
         const facePadding = filterObject["smartCrop"].facePadding;
 
         if (
-          (faceIndex !== undefined && faceIndex < 0) ||
-          (facePadding !== undefined && facePadding < 0)
+          (faceIndex !== undefined &&
+            (!isFiniteNumber(faceIndex) || faceIndex < 0)) ||
+          (facePadding !== undefined &&
+            (!isFiniteNumber(facePadding) || facePadding < 0))
         ) {
-          console.error(
-            "ImageHandler: Failed appending filter 'smartCrop'. Both faceIndex and facePadding must be at least 0."
+          logOnce(
+            "error",
+            "ImageHandler: Failed appending filter 'smartCrop'. Both faceIndex and facePadding must be numbers of at least 0."
           );
           return; // Next iteration
         }
@@ -295,19 +434,94 @@ export function mapFilterObjectToUrl(
       }
 
       //
+    } else if (filter === "convolution") {
+      //
+      // ----- Convolution
+      // Syntax: /filters:convolution(matrix_item;matrix_item;...,number_of_columns,should_normalize)
+      if (filterObject["convolution"]) {
+        const matrix = filterObject["convolution"].matrix;
+        const columns = filterObject["convolution"].columns;
+        const normalize = filterObject["convolution"].normalize || false;
+
+        // The matrix has to be a non-empty list of numbers
+        if (
+          !Array.isArray(matrix) ||
+          matrix.length === 0 ||
+          !matrix.every(isFiniteNumber)
+        ) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter '${filter}'. 'matrix' must be a non-empty array of numbers.`
+          );
+          return; // Next iteration
+        }
+
+        // The number of columns has to describe the matrix
+        if (!isFiniteNumber(columns) || columns < 1 || columns % 1 !== 0) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter '${filter}'. 'columns' must be a whole number of at least 1 but is ${columns}`
+          );
+          return; // Next iteration
+        }
+        if (matrix.length % columns !== 0) {
+          logOnce(
+            "error",
+            `ImageHandler: Failed appending filter '${filter}'. The matrix has ${matrix.length} items, which is not divisible by the ${columns} columns.`
+          );
+          return; // Next iteration
+        }
+
+        // Append to URL
+        filterUrl = `${filterUrl}/filters:convolution(${matrix.join(
+          ";"
+        )},${columns},${normalize})`;
+      }
+
+      //
     } else if (filter === "customFilter") {
       //
       // ----- Custom Filter
       let filterString = filterObject[filter];
 
       if (filterString) {
-        // Check if first character is a "/". If not, add one
-        if (filterString.charAt(0) !== "/") {
-          filterString = `/${filterString}`;
+        // The custom filter is passed through verbatim on purpose — it is the
+        // escape hatch for endpoint features the typed API does not cover.
+        // Only whitespace and control characters are stripped, because they
+        // would split the URL into a second `srcSet` candidate.
+        const strippedFilterString = String(filterString).replace(
+          /[\s\u0000-\u001f\u007f-\u009f]/g,
+          ""
+        );
+        if (strippedFilterString !== filterString) {
+          logOnce(
+            "warn",
+            `ImageHandler: Removed whitespace and control characters from filter 'customFilter'. They would break the generated URL.`
+          );
         }
-        //  Append to URL
-        filterUrl = `${filterUrl}${filterString}`;
+        filterString = strippedFilterString;
+
+        if (filterString) {
+          // Check if first character is a "/". If not, add one
+          if (filterString.charAt(0) !== "/") {
+            filterString = `/${filterString}`;
+          }
+          //  Append to URL
+          filterUrl = `${filterUrl}${filterString}`;
+        }
       }
+
+      //
+    } else if (
+      QUERY_PARAM_ONLY_FILTERS.indexOf(filter) >= 0 &&
+      filterObject[filter as keyof ImageFilterType] !== undefined
+    ) {
+      //
+      // ----- Filters that only exist in query-parameter mode
+      logOnce(
+        "warn",
+        `ImageHandler: The filter '${filter}' is only supported when 'useQueryParams' is enabled and was skipped.`
+      );
     }
 
     // Next iteration
@@ -318,16 +532,148 @@ export function mapFilterObjectToUrl(
 }
 
 /**
- * Function to normalize hex color codes by removing the leading '#' if present.
- * @param hex Hex color code (e.g. '#ff0000' or 'ff0000')
- * @returns Normalized hex color code (e.g. 'ff0000')
+ * Function to normalize and validate a color value by removing the leading '#'
+ * if present.
+ *
+ * Accepts a 3 to 8 digit hex code and the keyword values the endpoint supports
+ * (for example `auto`). Everything else is rejected, so a color value that
+ * originates from user data cannot inject additional URL or filter segments.
+ * @param hex Hex color code (e.g. '#ff0000' or 'ff0000') or a keyword
+ * @param filterName Name of the filter, used for the error message
+ * @returns Normalized color value (e.g. 'ff0000'), or `null` when it is invalid
  */
-function normalizeHexColor(hex: string): string {
+function normalizeHexColor(hex: string, filterName: string): string | null {
   // Remove leading '#' if present
-  if (hex.startsWith("#")) {
-    hex = hex.slice(1);
+  const normalized = String(hex).replace(/^#/, "");
+
+  // Accept hex codes and plain keywords only
+  if (
+    !/^[0-9a-fA-F]{3,8}$/.test(normalized) &&
+    !/^[a-zA-Z]+$/.test(normalized)
+  ) {
+    logOnce(
+      "error",
+      `ImageHandler: Failed appending filter '${filterName}'. The value must be a hex color code or a keyword but is ${hex}`
+    );
+    return null;
   }
 
   // Return normalized hex color
-  return hex;
+  return normalized;
+}
+
+/**
+ * Function to map the `crop` filter to its URL path segment.
+ *
+ * Unlike the other filters, a crop is not a `filters:` segment but its own path
+ * segment in the form `leftxtop:rightxbottom`, which has to sit in front of the
+ * resolution. It is therefore built here but assembled in `generateImgSrc()`.
+ * @param filterObject Object with filters
+ * @returns URL path segment for the crop, or an empty string
+ */
+export function mapCropToUrl(filterObject: ImageFilterType | undefined): string {
+  if (!filterObject || typeof filterObject !== "object") return "";
+
+  const crop = filterObject.crop;
+  if (!crop) return "";
+
+  const { left, top, right, bottom } = crop;
+
+  // All four edges have to be usable numbers
+  if (![left, top, right, bottom].every(isFiniteNumber)) {
+    logOnce(
+      "error",
+      `ImageHandler: Failed appending filter 'crop'. 'left', 'top', 'right' and 'bottom' must all be numbers.`
+    );
+    return "";
+  }
+
+  // The crop window has to have a positive area inside the image
+  if (left < 0 || top < 0 || right <= left || bottom <= top) {
+    logOnce(
+      "error",
+      `ImageHandler: Failed appending filter 'crop'. The window must satisfy 0 <= left < right and 0 <= top < bottom but is ${left}x${top}:${right}x${bottom}`
+    );
+    return "";
+  }
+
+  return `/${Math.round(left)}x${Math.round(top)}:${Math.round(
+    right
+  )}x${Math.round(bottom)}`;
+}
+
+/**
+ * Collapse the `greyscale` / `grayscale` alias onto the canonical `grayscale`
+ * key.
+ *
+ * The endpoint names the same operation `grayscale` in its path filters and
+ * `greyscale` in its query parameters, so the SDK accepts both. Collapsing them
+ * before the global filters and the per-image filters are merged makes the
+ * merge behave as a consumer expects: a per-image `greyscale: false` switches
+ * off a global `grayscale: true`, which a plain object spread would not do
+ * because the two keys are different. When one object carries both keys, the
+ * canonical `grayscale` wins.
+ * @param filterObject Filter object to normalize
+ * @returns The same object when there is nothing to collapse, otherwise a copy
+ */
+export function collapseFilterAliases(
+  filterObject: ImageFilterType | undefined
+): ImageFilterType | undefined {
+  // Nothing to do for the overwhelming majority of filter objects
+  if (!filterObject || filterObject.greyscale === undefined) return filterObject;
+
+  const { greyscale, ...rest } = filterObject;
+
+  return {
+    ...rest,
+    grayscale:
+      filterObject.grayscale !== undefined ? filterObject.grayscale : greyscale,
+  };
+}
+
+/**
+ * Shared empty filter object, so images without any filter all hand the same
+ * identity to the mapper's cache instead of allocating a new object each render.
+ */
+const EMPTY_FILTERS: ImageFilterType = {};
+
+/**
+ * Check whether a filter object carries anything at all.
+ * @param filterObject Filter object to check
+ * @returns `true` when there is at least one key
+ */
+function hasFilters(filterObject: ImageFilterType | undefined): boolean {
+  if (!filterObject) return false;
+  for (const key in filterObject) {
+    if (Object.prototype.hasOwnProperty.call(filterObject, key)) return true;
+  }
+  return false;
+}
+
+/**
+ * Merge the global filters with the per-image filters, per-image winning.
+ *
+ * Avoids allocating a merged object when only one side (or neither) actually
+ * holds filters, which is the common case. That keeps the object identity
+ * stable across renders so the filter URL cache can hit, and it saves one
+ * allocation per image per render.
+ * @param globalFilters Filters from the global configuration
+ * @param imageFilters Filters from the `filter` prop
+ * @returns Filter object to build the URL from
+ */
+export function mergeFilters(
+  globalFilters: ImageFilterType | undefined,
+  imageFilters: ImageFilterType | undefined
+): ImageFilterType {
+  const hasGlobal = hasFilters(globalFilters);
+  const hasImage = hasFilters(imageFilters);
+
+  if (!hasGlobal && !hasImage) return EMPTY_FILTERS;
+  if (!hasGlobal) return collapseFilterAliases(imageFilters) as ImageFilterType;
+  if (!hasImage) return collapseFilterAliases(globalFilters) as ImageFilterType;
+
+  return {
+    ...collapseFilterAliases(globalFilters),
+    ...collapseFilterAliases(imageFilters),
+  };
 }

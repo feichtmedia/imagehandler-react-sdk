@@ -1,5 +1,6 @@
 import { ConfigurationContextType, ImageFilterType } from "../types";
 import { generateImgSrc } from "./generate-img-src";
+import { logOnce, toDimension } from "./general";
 
 /**
  * Function to generate a set of image source that can be used as `srcSet` value.
@@ -22,32 +23,49 @@ export function generateSrcSet(
   // Store srcSet
   let srcSet: string[] = [];
 
-  // Loop through sizes and generate a image src for each size
+  // Fallback if the sizes are not an array (JavaScript consumers)
+  if (!Array.isArray(sizes)) {
+    logOnce(
+      "error",
+      `ImageHandler: Failed generating a src-set. 'srcSetSizes' must be an array of numbers.`
+    );
+    return "";
+  }
+
+  // Normalize the max. image width to a non-negative integer
+  const preparedMaxImageWidth: number = toDimension(maxImageWidth);
+
+  // Collect the widths that end up in the src-set, skipping invalid entries,
+  // duplicates and every size above the max. image width specified by the user
+  const widths: number[] = [];
   sizes.forEach((size) => {
-    if (maxImageWidth && size > maxImageWidth) return; // Stop if the size is greater than the max. image width specified by the user
-    const src = generateImgSrc(
-      size,
-      0,
-      objectFit,
-      filterObject,
-      imgSrc,
-      config
-    ); // Create image src for current sizes
-    srcSet.push(`${src} ${size}w`); // Push to array
+    const preparedSize = toDimension(size);
+    if (preparedSize === 0) return; // Skip sizes that are not usable
+    if (preparedMaxImageWidth > 0 && preparedSize > preparedMaxImageWidth) {
+      return; // Skip sizes greater than the max. image width
+    }
+    if (widths.indexOf(preparedSize) >= 0) return; // Skip duplicates
+    widths.push(preparedSize);
   });
 
-  // Add entry to srcSet with max. image width specified by the user (only if the sizes doesn't exist in the `sizes` array)
-  if (maxImageWidth && sizes.indexOf(maxImageWidth) < 0) {
+  // Add entry to srcSet with max. image width specified by the user (only if
+  // the size doesn't exist in the `sizes` array)
+  if (preparedMaxImageWidth > 0 && widths.indexOf(preparedMaxImageWidth) < 0) {
+    widths.push(preparedMaxImageWidth);
+  }
+
+  // Loop through the widths and generate a image src for each one
+  widths.forEach((width) => {
     const src = generateImgSrc(
-      maxImageWidth,
+      width,
       0,
       objectFit,
       filterObject,
       imgSrc,
       config
-    ); // Create image src for current sizes
-    srcSet.push(`${src} ${maxImageWidth}w`); // Push to array
-  }
+    ); // Create image src for current size
+    srcSet.push(`${src} ${width}w`); // Push to array
+  });
 
   // Return srcSet string
   return srcSet.join(", "); // Join array of sources

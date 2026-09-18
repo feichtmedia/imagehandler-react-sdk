@@ -1,46 +1,47 @@
-# Getting Started with Create React App
+# ImageHandler React SDK – Example App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Manual test harness for `@feichtmedia/imagehandler-react-sdk`, built with
+[Vite](https://vite.dev/) and React 19. It is **not a product** and is never
+published — it exists so that changes to URL generation, filters and lazy
+loading can be verified in a browser.
 
-## Available Scripts
+Since this repository has no automated tests, this app is the only verification
+path: render a case here and inspect the generated `src` / `srcSet` values in
+the browser's element inspector or network tab.
 
-In the project directory, you can run:
+## Setup
 
-### `npm start`
+The app consumes the SDK through `"@feichtmedia/imagehandler-react-sdk": "file:.."`,
+which resolves to the repository's `dist/` directory. **Build the SDK first**,
+otherwise your changes will not be visible:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+```bash
+cd ..
+npm install
+npm run build
+cd example-app
+npm install
+```
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+While working on the SDK, keep `npm run watch` running in the repository root.
+The dev server reads the SDK from source rather than pre-bundling it, so
+recompiled output is picked up on the next reload.
 
-### `npm test`
+## Available scripts
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+| Command           | What it does                                                         |
+| ----------------- | -------------------------------------------------------------------- |
+| `npm start`       | Starts the dev server on [localhost:3000](http://localhost:3000)     |
+| `npm run dev`     | Alias for `npm start`                                                |
+| `npm run build`   | Type-checks with `tsc --noEmit`, then builds to `dist/`              |
+| `npm run preview` | Serves the production build locally                                  |
 
-### `npm run build`
+## Adding a test case
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Add an `<ImageHandler />` to `src/App.tsx`. Global configuration lives in
+`src/index.tsx`, where the app is wrapped in `<ImageHandlerContext>` — change
+`useQueryParams`, `optimizeSvg`, `progressiveImageLoading` or `globalFilters`
+there to exercise the different code paths.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
-
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
-
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+When you add or change an image filter, a case in `src/App.tsx` is required:
+it is the only way to verify the URL the filter produces.
