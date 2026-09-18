@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.8.0] – 2026-09-18
 
 - Added `AGENTS.md` file with instructions for AI coding assistants.
 - Added `CLAUDE.md` for Claude Code which references to the `AGENTS.md` file.
